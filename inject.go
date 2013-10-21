@@ -82,7 +82,10 @@ func (g *Graph) Provide(o Object) error {
 
 		key := fmt.Sprint(o.reflectType)
 		if g.unnamedType[key] {
-			return fmt.Errorf("provided two unnamed instances of type %s", o.reflectType)
+			return fmt.Errorf(
+				"provided two unnamed instances of type %s",
+				o.reflectType,
+			)
 		}
 		g.unnamedType[key] = true
 		g.unnamed = append(g.unnamed, &o)
@@ -173,9 +176,9 @@ StructLoop:
 			continue StructLoop
 		}
 
-		// Unless it's a private inject, we'll look for an existing instance.
+		// Unless it's a private inject, we'll look for an existing instance of the
+		// same type.
 		if tag != injectPrivate {
-			// Check for an existing Object of the same type.
 			for _, existing := range g.unnamed {
 				if existing.reflectType.AssignableTo(fieldType) {
 					existing.assignedCount += 1
@@ -191,8 +194,8 @@ StructLoop:
 		field.Set(newValue)
 
 		// Add the newly ceated object to the known set of objects unless it's
-		// private or named.
-		if tag == injectOnly {
+		// private.
+		if tag != injectPrivate {
 			if err := g.Provide(Object{Value: newValue.Interface()}); err != nil {
 				return err
 			}
