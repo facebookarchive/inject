@@ -1,12 +1,28 @@
-// Package inject provides a reflect based injector. It works using Go's
-// reflection package and is inherently limited in what it can do as opposed to
-// a code-gen system.
+// Package inject provides a reflect based injector. A large application built
+// with dependency injection in mind will typically involve the boring work of
+// setting up the object graph. This library attempts to take care of this
+// boring work by creating and connecting the various objects. Its use involves
+// you seeding the object graph with some (possibly incomplete) objects, where
+// the underlying types have been tagged for injection. Given this, the
+// library will populate the objects creating new ones as necessary. It uses
+// singletons by default, supports optional private instances as well as named
+// instances.
 //
-// Struct Tags:
+// It works using Go's reflection package and is inherently limited in what it
+// can do as opposed to a code-gen system.
 //
-//     `inject`
-//     `inject:"dev logger"`
+// The usage pattern for the library involves struct tags. It requires the tag
+// format used by the json library etc. It involves tags in one of the three
+// forms below:
+//
+//     `inject:""`
 //     `inject:"private"`
+//     `inject:"dev logger"`
+//
+// The first no value syntax is for the common case of a singleton dependency
+// of the associated type. The second triggers creation of a private instance
+// for the associated type. Finally the last form is asking for a named
+// dependency called "dev logger".
 package inject
 
 import (
