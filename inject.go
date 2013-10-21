@@ -104,12 +104,12 @@ func (g *Graph) Provide(o Object) error {
 
 // Populate the incomplete Objects.
 func (g *Graph) Populate() error {
-	// we append and modify our slice as we go along, so we don't use a standard
+	// We append and modify our slice as we go along, so we don't use a standard
 	// range loop, and do a single pass thru each object in our graph.
 	i := 0
 	for {
 		if i == len(g.unnamed) {
-			return nil
+			break
 		}
 
 		o := g.unnamed[i]
@@ -119,13 +119,27 @@ func (g *Graph) Populate() error {
 			continue
 		}
 
-		if err := g.populate(o); err != nil {
+		if err := g.populatePointer(o); err != nil {
 			return err
 		}
 	}
+
+	// A Second pass handles injecting Interface values to ensure we have created
+	// all concrete types first.
+	for _, o := range g.unnamed {
+		if o.Complete {
+			continue
+		}
+
+		if err := g.populateInterface(o); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (g *Graph) populate(o *Object) error {
+func (g *Graph) populatePointer(o *Object) error {
 StructLoop:
 	for i := 0; i < o.reflectValue.Elem().NumField(); i++ {
 		field := o.reflectValue.Elem().Field(i)
@@ -143,6 +157,11 @@ StructLoop:
 
 		// Skip fields without a tag.
 		if tag == nil {
+			continue
+		}
+
+		// Interface injection is handled in a second pass.
+		if fieldType.Kind() == reflect.Interface {
 			continue
 		}
 
@@ -199,6 +218,98 @@ StructLoop:
 			if err := g.Provide(Object{Value: newValue.Interface()}); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func (g *Graph) populateInterface(o *Object) error {
+StructLoop:
+	for i := 0; i < o.reflectValue.Elem().NumField(); i++ {
+		field := o.reflectValue.Elem().Field(i)
+		fieldType := field.Type()
+		fieldTag := o.reflectType.Elem().Field(i).Tag
+		tag, err := parseTag(string(fieldTag))
+		if err != nil {
+			return fmt.Errorf(
+				"unexpected tag format `%s` for field %s in type %s",
+				string(fieldTag),
+				o.reflectType.Elem().Field(i).Name,
+				o.reflectType,
+			)
+		}
+
+		// Skip fields without a tag.
+		if tag == nil {
+			continue
+		}
+
+		// We only handle interface injection here. Other cases including errors
+		// are handled in the first pass when we inject pointers.
+		if fieldType.Kind() != reflect.Interface {
+			continue
+		}
+
+		// Interface injection can't be private because we can't instantiate new
+		// instances of an interface.
+		if tag == injectPrivate {
+			return fmt.Errorf(
+				"found private inject tag on interface field %s in type %s",
+				o.reflectType.Elem().Field(i).Name,
+				o.reflectType,
+			)
+		}
+
+		// Don't overwrite existing values.
+		if !field.IsNil() {
+			continue
+		}
+
+		// Named injects must have been explicitly provided.
+		if tag.Name != "" {
+			existing := g.named[tag.Name]
+			if existing == nil {
+				return fmt.Errorf(
+					"did not find object named %s required by field %s in type %s",
+					tag.Name,
+					o.reflectType.Elem().Field(i).Name,
+					o.reflectType,
+				)
+			}
+			existing.assignedCount += 1
+			field.Set(reflect.ValueOf(existing.Value))
+			continue StructLoop
+		}
+
+		// Find one, and only one assignable value for the field.
+		var found *Object
+		for _, existing := range g.unnamed {
+			if existing.reflectType.AssignableTo(fieldType) {
+				if found != nil {
+					return fmt.Errorf(
+						"found two assignable values for field %s in type %s. one type "+
+							"%s with value %v and another type %s with value %v",
+						o.reflectType.Elem().Field(i).Name,
+						o.reflectType,
+						found.reflectType,
+						found.Value,
+						existing.reflectType,
+						existing.reflectValue,
+					)
+				}
+				found = existing
+				existing.assignedCount += 1
+				field.Set(reflect.ValueOf(existing.Value))
+			}
+		}
+
+		// If we didn't find an assignable value, we're missing something.
+		if found == nil {
+			return fmt.Errorf(
+				"found no assignable value for field %s in type %s",
+				o.reflectType.Elem().Field(i).Name,
+				o.reflectType,
+			)
 		}
 	}
 	return nil

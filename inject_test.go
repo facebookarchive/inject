@@ -323,13 +323,14 @@ func TestCompleteProvides(t *testing.T) {
 	}
 }
 
-/*
+type TypeInjectInterface struct {
+	Answerable Answerable        `inject:""`
+	B          *TypeNestedStruct `inject:""`
+}
+
 func TestInjectInterface(t *testing.T) {
-	var v struct {
-		Answerable Answerable
-		B          *TypeNestedStruct
-	}
-	if err := inject.Build(&v); err != nil {
+	var v TypeInjectInterface
+	if err := inject.Populate(&v); err != nil {
 		t.Fatal(err)
 	}
 	if v.Answerable == nil || v.Answerable != v.B {
@@ -342,4 +343,3 @@ func TestInjectInterface(t *testing.T) {
 		)
 	}
 }
-*/

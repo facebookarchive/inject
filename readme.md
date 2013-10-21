@@ -9,4 +9,5 @@ TODO
 
 - cycle detection
 - follow inline structs even if not pointers
-- interface injection
+- inject in named instances
+- test invalid named instance types
