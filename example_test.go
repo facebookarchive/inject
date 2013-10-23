@@ -83,7 +83,7 @@ func Example() {
 	}
 
 	// There is a shorthand API for the simple case which combines the three
-	// calls above and is available as inject.Populate:
+	// calls above is available as inject.Populate:
 	//
 	//   inject.Populate(&a, http.DefaultTransport)
 	//
