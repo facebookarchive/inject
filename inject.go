@@ -12,8 +12,8 @@
 // can do as opposed to a code-gen system with respect to private fields.
 //
 // The usage pattern for the library involves struct tags. It requires the tag
-// format used by the json library etc. It involves tags in one of the three
-// forms below:
+// format used by the various standard libraries, like json, xml etc. It
+// involves tags in one of the three forms below:
 //
 //     `inject:""`
 //     `inject:"private"`
