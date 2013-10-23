@@ -16,7 +16,7 @@ type AwesomeApp struct {
 
 func (a *AwesomeApp) Render(id uint64) string {
 	return fmt.Sprintf(
-		"%s is from the %s planet.",
+		"%s is from the planet %s.",
 		a.NameAPI.Name(id),
 		a.PlanetAPI.Planet(id),
 	)
@@ -38,7 +38,7 @@ type PlanetAPI struct {
 }
 
 func (p *PlanetAPI) Planet(id uint64) string {
-	// in the real world we would use f.HttpTransport and fetch the name
+	// in the real world we would use f.HttpTransport and fetch the planet
 	return "Vulcan"
 }
 
@@ -63,5 +63,5 @@ func Example() {
 
 	fmt.Println(a.Render(42))
 
-	// Output: Spock is from the Vulcan planet.
+	// Output: Spock is from the planet Vulcan.
 }
