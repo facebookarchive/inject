@@ -51,9 +51,8 @@ func (p *PlanetAPI) Planet(id uint64) string {
 }
 
 func Example() {
-	// Typically an application will have exactly one object graph per
-	// "application" or "server". Traditionally you will create the graph and use
-	// it within a main function:
+	// Typically an application will have exactly one object graph.
+	// Traditionally you will create the graph and use it within a main function:
 	var g inject.Graph
 
 	// We Populate our world with two "seed" objects, one our empty AwesomeApp
@@ -76,16 +75,20 @@ func Example() {
 	}
 
 	// Here the Populate call is creating instances of NameAPI & PlanetAPI, and
-	// setting the HttpTransport on both of those to the http.DefaultTransport
-	// provided above:
+	// setting the HttpTransport on both to the http.DefaultTransport provided
+	// above:
 	if err := g.Populate(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	// There is a shorthand API for the simple case which combines the three
-	// calls above and is available as inject.Populate. The above API also allows
-	// the use of named instances for more complex scenarios.
+	// calls above and is available as inject.Populate:
+	//
+	//   inject.Populate(&a, http.DefaultTransport)
+	//
+	// The above API shows the main API and also allows the use of named
+	// instances for more complex scenarios.
 
 	fmt.Println(a.Render(42))
 
