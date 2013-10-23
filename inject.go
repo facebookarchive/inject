@@ -9,7 +9,7 @@
 // instances.
 //
 // It works using Go's reflection package and is inherently limited in what it
-// can do as opposed to a code-gen system.
+// can do as opposed to a code-gen system with respect to private fields.
 //
 // The usage pattern for the library involves struct tags. It requires the tag
 // format used by the json library etc. It involves tags in one of the three
@@ -32,7 +32,7 @@ import (
 	"strconv"
 )
 
-// Short-hand for populating a graph with the given object values.
+// Short-hand for populating a graph with the given incomplete object values.
 func Populate(values ...interface{}) error {
 	var g Graph
 	for _, v := range values {

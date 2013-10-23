@@ -11,3 +11,4 @@ TODO
 - follow inline structs even if not pointers
 - inject in named instances
 - test invalid named instance types
+- test invalid private field with tag
