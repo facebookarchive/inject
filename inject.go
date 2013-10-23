@@ -60,44 +60,46 @@ type Graph struct {
 	named       map[string]*Object
 }
 
-// Provide an Object to the Graph. The Object documentation describes
+// Provide objects to the Graph. The Object documentation describes
 // the impact of various fields.
-func (g *Graph) Provide(o Object) error {
-	o.reflectType = reflect.TypeOf(o.Value)
-	o.reflectValue = reflect.ValueOf(o.Value)
+func (g *Graph) Provide(objects ...Object) error {
+	for _, o := range objects {
+		o.reflectType = reflect.TypeOf(o.Value)
+		o.reflectValue = reflect.ValueOf(o.Value)
 
-	if !isStructPtr(o.reflectType) {
-		return fmt.Errorf(
-			"expected object value to be a pointer to a struct but got type %s "+
-				"with value %v",
-			o.reflectType,
-			o.Value,
-		)
-	}
-
-	if o.Name == "" {
-		if g.unnamedType == nil {
-			g.unnamedType = make(map[string]bool)
-		}
-
-		key := fmt.Sprint(o.reflectType)
-		if g.unnamedType[key] {
+		if !isStructPtr(o.reflectType) {
 			return fmt.Errorf(
-				"provided two unnamed instances of type %s",
+				"expected object value to be a pointer to a struct but got type %s "+
+					"with value %v",
 				o.reflectType,
+				o.Value,
 			)
 		}
-		g.unnamedType[key] = true
-		g.unnamed = append(g.unnamed, &o)
-	} else {
-		if g.named == nil {
-			g.named = make(map[string]*Object)
-		}
 
-		if g.named[o.Name] != nil {
-			return fmt.Errorf("provided two instances named %s", o.Name)
+		if o.Name == "" {
+			if g.unnamedType == nil {
+				g.unnamedType = make(map[string]bool)
+			}
+
+			key := fmt.Sprint(o.reflectType)
+			if g.unnamedType[key] {
+				return fmt.Errorf(
+					"provided two unnamed instances of type %s",
+					o.reflectType,
+				)
+			}
+			g.unnamedType[key] = true
+			g.unnamed = append(g.unnamed, &o)
+		} else {
+			if g.named == nil {
+				g.named = make(map[string]*Object)
+			}
+
+			if g.named[o.Name] != nil {
+				return fmt.Errorf("provided two instances named %s", o.Name)
+			}
+			g.named[o.Name] = &o
 		}
-		g.named[o.Name] = &o
 	}
 	return nil
 }
