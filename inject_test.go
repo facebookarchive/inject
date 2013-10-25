@@ -23,15 +23,6 @@ func (b *TypeNestedStruct) Answer() int {
 	return b.A.Answer
 }
 
-type C struct {
-	A *TypeAnswerStruct `inject:""`
-	B *TypeNestedStruct `inject:""`
-}
-
-func (c *C) Answer() int {
-	return c.A.Answer + c.B.Answer()
-}
-
 func TestRequireTag(t *testing.T) {
 	var v struct {
 		A *TypeAnswerStruct
@@ -108,8 +99,12 @@ func TestInjectSimple(t *testing.T) {
 
 func TestDoesNotOverwrite(t *testing.T) {
 	a := &TypeAnswerStruct{}
-	v := &C{A: a}
-	if err := inject.Populate(v); err != nil {
+	var v struct {
+		A *TypeAnswerStruct `inject:""`
+		B *TypeNestedStruct `inject:""`
+	}
+	v.A = a
+	if err := inject.Populate(&v); err != nil {
 		t.Fatal(err)
 	}
 	if v.A != a {
