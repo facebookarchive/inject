@@ -427,3 +427,21 @@ func TestInjectOnPrivateInterfaceField(t *testing.T) {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
 }
+
+type TypeInjectPrivateInterface struct {
+	Answerable Answerable        `inject:"private"`
+	B          *TypeNestedStruct `inject:""`
+}
+
+func TestInjectPrivateInterface(t *testing.T) {
+	var v TypeInjectPrivateInterface
+	err := inject.Populate(&v)
+	if err == nil {
+		t.Fatal("did not find expected error")
+	}
+
+	const msg = "found private inject tag on interface field Answerable in type *inject_test.TypeInjectPrivateInterface"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
