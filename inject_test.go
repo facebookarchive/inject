@@ -362,6 +362,23 @@ func TestCompleteNamedProvides(t *testing.T) {
 	}
 }
 
+type TypeInjectInterfaceMissing struct {
+	Answerable Answerable `inject:""`
+}
+
+func TestInjectInterfaceMissing(t *testing.T) {
+	var v TypeInjectInterfaceMissing
+	err := inject.Populate(&v)
+	if err == nil {
+		t.Fatal("did not find expected error")
+	}
+
+	const msg = "found no assignable value for field Answerable in type *inject_test.TypeInjectInterfaceMissing"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
+
 type TypeInjectInterface struct {
 	Answerable Answerable        `inject:""`
 	A          *TypeAnswerStruct `inject:""`
