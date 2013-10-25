@@ -7,7 +7,7 @@ Documentation: http://godoc.org/github.com/daaku/go.inject
 TODO
 ====
 
-- follow inline structs even if not pointers
 - allow named value types
+- follow inline structs even if not pointers
 - cycle detection
 - provide inside out and outside in iteration on the objects in the graph

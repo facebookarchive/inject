@@ -121,7 +121,7 @@ func (g *Graph) Populate() error {
 			continue
 		}
 
-		if err := g.populatePointer(o); err != nil {
+		if err := g.populateExplicit(o); err != nil {
 			return err
 		}
 	}
@@ -131,7 +131,7 @@ func (g *Graph) Populate() error {
 			continue
 		}
 
-		if err := g.populatePointer(o); err != nil {
+		if err := g.populateExplicit(o); err != nil {
 			return err
 		}
 	}
@@ -143,7 +143,7 @@ func (g *Graph) Populate() error {
 			continue
 		}
 
-		if err := g.populateInterface(o); err != nil {
+		if err := g.populateUnnamedInterface(o); err != nil {
 			return err
 		}
 	}
@@ -153,7 +153,7 @@ func (g *Graph) Populate() error {
 			continue
 		}
 
-		if err := g.populateInterface(o); err != nil {
+		if err := g.populateUnnamedInterface(o); err != nil {
 			return err
 		}
 	}
@@ -161,7 +161,7 @@ func (g *Graph) Populate() error {
 	return nil
 }
 
-func (g *Graph) populatePointer(o *Object) error {
+func (g *Graph) populateExplicit(o *Object) error {
 StructLoop:
 	for i := 0; i < o.reflectValue.Elem().NumField(); i++ {
 		field := o.reflectValue.Elem().Field(i)
@@ -265,7 +265,7 @@ StructLoop:
 	return nil
 }
 
-func (g *Graph) populateInterface(o *Object) error {
+func (g *Graph) populateUnnamedInterface(o *Object) error {
 StructLoop:
 	for i := 0; i < o.reflectValue.Elem().NumField(); i++ {
 		field := o.reflectValue.Elem().Field(i)
