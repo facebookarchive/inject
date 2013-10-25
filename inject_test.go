@@ -480,3 +480,27 @@ func TestInjectTwoSatisfyInterface(t *testing.T) {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
 }
+
+type TypeInjectNamedTwoSatisfyInterface struct {
+	Answerable Answerable        `inject:""`
+	A          *TypeAnswerStruct `inject:""`
+	B          *TypeNestedStruct `inject:""`
+}
+
+func TestInjectNamedTwoSatisfyInterface(t *testing.T) {
+	var g inject.Graph
+	var v TypeInjectNamedTwoSatisfyInterface
+	if err := g.Provide(inject.Object{Name: "foo", Value: &v}); err != nil {
+		t.Fatal(err)
+	}
+
+	err := g.Populate()
+	if err == nil {
+		t.Fatal("was expecting error")
+	}
+
+	const msg = "found two assignable values for field Answerable in type *inject_test.TypeInjectNamedTwoSatisfyInterface. one type *inject_test.TypeAnswerStruct with value &{0 0} and another type *inject_test.TypeNestedStruct with value <*inject_test.TypeNestedStruct Value>"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
