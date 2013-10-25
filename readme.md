@@ -7,8 +7,9 @@ Documentation: http://godoc.org/github.com/daaku/go.inject
 TODO
 ====
 
-- cycle detection
-- follow inline structs even if not pointers
-- inject in named instances
-- test invalid named instance types
 - test invalid private field with tag
+- inject in named instances
+- follow inline structs even if not pointers
+- allow named value types
+- cycle detection
+- provide inside out and outside in iteration on the objects in the graph

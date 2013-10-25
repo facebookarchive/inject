@@ -192,6 +192,17 @@ StructLoop:
 					o.reflectType,
 				)
 			}
+
+			if !existing.reflectType.AssignableTo(fieldType) {
+				return fmt.Errorf(
+					"object named %s of type %s is not assignable to field %s in type %s",
+					tag.Name,
+					fieldType,
+					o.reflectType.Elem().Field(i).Name,
+					o.reflectType,
+				)
+			}
+
 			existing.assignedCount += 1
 			field.Set(reflect.ValueOf(existing.Value))
 			continue StructLoop

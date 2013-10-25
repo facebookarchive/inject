@@ -343,3 +343,30 @@ func TestInjectInterface(t *testing.T) {
 		)
 	}
 }
+
+type TypeWithInvalidNamedType struct {
+	A *TypeNestedStruct `inject:"foo"`
+}
+
+func TestInvalidNamedInstanceType(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{}
+	if err := g.Provide(inject.Object{Value: a, Name: "foo"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var c TypeWithInvalidNamedType
+	if err := g.Provide(inject.Object{Value: &c}); err != nil {
+		t.Fatal(err)
+	}
+
+	err := g.Populate()
+	if err == nil {
+		t.Fatal("did not find expected error")
+	}
+
+	const msg = "object named foo of type *inject_test.TypeNestedStruct is not assignable to field A in type *inject_test.TypeWithInvalidNamedType"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
