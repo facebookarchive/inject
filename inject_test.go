@@ -504,3 +504,25 @@ func TestInjectNamedTwoSatisfyInterface(t *testing.T) {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
 }
+
+type TypeWithInjectNamedOnPrivateInterfaceField struct {
+	a Answerable `inject:""`
+}
+
+func TestInjectNamedOnPrivateInterfaceField(t *testing.T) {
+	var g inject.Graph
+	var v TypeWithInjectNamedOnPrivateInterfaceField
+	if err := g.Provide(inject.Object{Name: "foo", Value: &v}); err != nil {
+		t.Fatal(err)
+	}
+
+	err := g.Populate()
+	if err == nil {
+		t.Fatal("was expecting error")
+	}
+
+	const msg = "inject requested on unexported field a in type *inject_test.TypeWithInjectNamedOnPrivateInterfaceField"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
