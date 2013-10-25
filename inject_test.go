@@ -346,6 +346,23 @@ func TestCompleteProvides(t *testing.T) {
 	}
 }
 
+func TestCompleteNamedProvides(t *testing.T) {
+	var g inject.Graph
+	var v struct {
+		A *TypeAnswerStruct `inject:""`
+	}
+	if err := g.Provide(inject.Object{Value: &v, Complete: true, Name: "foo"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
+	}
+	if v.A != nil {
+		t.Fatal("v.A was not nil")
+	}
+}
+
 type TypeInjectInterface struct {
 	Answerable Answerable        `inject:""`
 	B          *TypeNestedStruct `inject:""`
