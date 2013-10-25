@@ -6,21 +6,25 @@ import (
 	"github.com/daaku/go.inject"
 )
 
+type Answerable interface {
+	Answer() int
+}
+
 type TypeAnswerStruct struct {
-	Answer  int
+	answer  int
 	private int
 }
 
-type Answerable interface {
-	Answer() int
+func (t *TypeAnswerStruct) Answer() int {
+	return t.answer
 }
 
 type TypeNestedStruct struct {
 	A *TypeAnswerStruct `inject:""`
 }
 
-func (b *TypeNestedStruct) Answer() int {
-	return b.A.Answer
+func (t *TypeNestedStruct) Answer() int {
+	return t.A.Answer()
 }
 
 func TestRequireTag(t *testing.T) {
@@ -360,7 +364,7 @@ func TestCompleteNamedProvides(t *testing.T) {
 
 type TypeInjectInterface struct {
 	Answerable Answerable        `inject:""`
-	B          *TypeNestedStruct `inject:""`
+	A          *TypeAnswerStruct `inject:""`
 }
 
 func TestInjectInterface(t *testing.T) {
@@ -368,13 +372,13 @@ func TestInjectInterface(t *testing.T) {
 	if err := inject.Populate(&v); err != nil {
 		t.Fatal(err)
 	}
-	if v.Answerable == nil || v.Answerable != v.B {
+	if v.Answerable == nil || v.Answerable != v.A {
 		t.Fatalf(
-			"expected the same but got Answerable = %T %+v / B = %T %+v",
+			"expected the same but got Answerable = %T %+v / A = %T %+v",
 			v.Answerable,
 			v.Answerable,
-			v.B,
-			v.B,
+			v.A,
+			v.A,
 		)
 	}
 }
@@ -453,6 +457,25 @@ func TestInjectPrivateInterface(t *testing.T) {
 	}
 
 	const msg = "found private inject tag on interface field Answerable in type *inject_test.TypeInjectPrivateInterface"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
+
+type TypeInjectTwoSatisfyInterface struct {
+	Answerable Answerable        `inject:""`
+	A          *TypeAnswerStruct `inject:""`
+	B          *TypeNestedStruct `inject:""`
+}
+
+func TestInjectTwoSatisfyInterface(t *testing.T) {
+	var v TypeInjectTwoSatisfyInterface
+	err := inject.Populate(&v)
+	if err == nil {
+		t.Fatal("did not find expected error")
+	}
+
+	const msg = "found two assignable values for field Answerable in type *inject_test.TypeInjectTwoSatisfyInterface. one type *inject_test.TypeAnswerStruct with value &{0 0} and another type *inject_test.TypeNestedStruct with value <*inject_test.TypeNestedStruct Value>"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
