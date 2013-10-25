@@ -162,6 +162,15 @@ StructLoop:
 			continue
 		}
 
+		// Cannot be used with unexported fields.
+		if !field.CanSet() {
+			return fmt.Errorf(
+				"inject requested on unexported field %s in type %s",
+				o.reflectType.Elem().Field(i).Name,
+				o.reflectType,
+			)
+		}
+
 		// Interface injection is handled in a second pass.
 		if fieldType.Kind() == reflect.Interface {
 			continue

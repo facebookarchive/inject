@@ -370,3 +370,37 @@ func TestInvalidNamedInstanceType(t *testing.T) {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
 }
+
+type TypeWithInjectOnPrivateField struct {
+	a *TypeAnswerStruct `inject:""`
+}
+
+func TestInjectOnPrivateField(t *testing.T) {
+	var a TypeWithInjectOnPrivateField
+	err := inject.Populate(&a)
+	if err == nil {
+		t.Fatal("did not find expected error")
+	}
+
+	const msg = "inject requested on unexported field a in type *inject_test.TypeWithInjectOnPrivateField"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
+
+type TypeWithInjectOnPrivateInterfaceField struct {
+	a Answerable `inject:""`
+}
+
+func TestInjectOnPrivateInterfaceField(t *testing.T) {
+	var a TypeWithInjectOnPrivateField
+	err := inject.Populate(&a)
+	if err == nil {
+		t.Fatal("did not find expected error")
+	}
+
+	const msg = "inject requested on unexported field a in type *inject_test.TypeWithInjectOnPrivateField"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
