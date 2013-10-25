@@ -257,6 +257,29 @@ func TestProvideTwoWithTheSameName(t *testing.T) {
 	}
 }
 
+func TestNamedInstanceWithDependencies(t *testing.T) {
+	var g inject.Graph
+	a := &TypeNestedStruct{}
+	if err := g.Provide(inject.Object{Value: a, Name: "foo"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var c struct {
+		A *TypeNestedStruct `inject:"foo"`
+	}
+	if err := g.Provide(inject.Object{Value: &c}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
+	}
+
+	if c.A.A == nil {
+		t.Fatal("c.A.A was not injected")
+	}
+}
+
 func TestTwoNamedInstances(t *testing.T) {
 	var g inject.Graph
 	a := &TypeAnswerStruct{}

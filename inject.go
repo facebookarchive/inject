@@ -126,9 +126,29 @@ func (g *Graph) Populate() error {
 		}
 	}
 
+	for _, o := range g.named {
+		if o.Complete {
+			continue
+		}
+
+		if err := g.populatePointer(o); err != nil {
+			return err
+		}
+	}
+
 	// A Second pass handles injecting Interface values to ensure we have created
 	// all concrete types first.
 	for _, o := range g.unnamed {
+		if o.Complete {
+			continue
+		}
+
+		if err := g.populateInterface(o); err != nil {
+			return err
+		}
+	}
+
+	for _, o := range g.named {
 		if o.Complete {
 			continue
 		}
