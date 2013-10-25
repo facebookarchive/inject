@@ -184,7 +184,7 @@ func TestProvideNonPointer(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "expected object value to be a pointer to a struct but got type int with value 0"
+	const msg = "expected unnamed object value to be a pointer to a struct but got type int with value 0"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -198,7 +198,7 @@ func TestProvideNonPointerStruct(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "expected object value to be a pointer to a struct but got type *int with value <nil>"
+	const msg = "expected unnamed object value to be a pointer to a struct but got type *int with value <nil>"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -541,5 +541,29 @@ func TestInjectNamedOnPrivateInterfaceField(t *testing.T) {
 	const msg = "inject requested on unexported field a in type *inject_test.TypeWithInjectNamedOnPrivateInterfaceField"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
+
+type TypeWithNonPointerNamedInject struct {
+	A int `inject:"foo"`
+}
+
+func TestErrorOnNonPointerNamedInject(t *testing.T) {
+	var g inject.Graph
+	if err := g.Provide(inject.Object{Name: "foo", Value: 42}); err != nil {
+		t.Fatal(err)
+	}
+
+	var v TypeWithNonPointerNamedInject
+	if err := g.Provide(inject.Object{Value: &v}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
+	}
+
+	if v.A != 42 {
+		t.Fatalf("expected v.A = 42 but got %d", v.A)
 	}
 }

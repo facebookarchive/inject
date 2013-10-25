@@ -67,16 +67,16 @@ func (g *Graph) Provide(objects ...Object) error {
 		o.reflectType = reflect.TypeOf(o.Value)
 		o.reflectValue = reflect.ValueOf(o.Value)
 
-		if !isStructPtr(o.reflectType) {
-			return fmt.Errorf(
-				"expected object value to be a pointer to a struct but got type %s "+
-					"with value %v",
-				o.reflectType,
-				o.Value,
-			)
-		}
-
 		if o.Name == "" {
+			if !isStructPtr(o.reflectType) {
+				return fmt.Errorf(
+					"expected unnamed object value to be a pointer to a struct but got type %s "+
+						"with value %v",
+					o.reflectType,
+					o.Value,
+				)
+			}
+
 			if g.unnamedType == nil {
 				g.unnamedType = make(map[string]bool)
 			}
@@ -162,6 +162,11 @@ func (g *Graph) Populate() error {
 }
 
 func (g *Graph) populateExplicit(o *Object) error {
+	// Ignore named value types.
+	if o.Name != "" && !isStructPtr(o.reflectType) {
+		return nil
+	}
+
 StructLoop:
 	for i := 0; i < o.reflectValue.Elem().NumField(); i++ {
 		field := o.reflectValue.Elem().Field(i)
@@ -191,22 +196,8 @@ StructLoop:
 			)
 		}
 
-		// Interface injection is handled in a second pass.
-		if fieldType.Kind() == reflect.Interface {
-			continue
-		}
-
-		// Can only inject Pointers.
-		if !isStructPtr(fieldType) {
-			return fmt.Errorf(
-				"found inject tag on non-pointer field %s in type %s",
-				o.reflectType.Elem().Field(i).Name,
-				o.reflectType,
-			)
-		}
-
 		// Don't overwrite existing values.
-		if !field.IsNil() {
+		if !isNilOrZero(field, fieldType) {
 			continue
 		}
 
@@ -235,6 +226,20 @@ StructLoop:
 			existing.assignedCount += 1
 			field.Set(reflect.ValueOf(existing.Value))
 			continue StructLoop
+		}
+
+		// Interface injection is handled in a second pass.
+		if fieldType.Kind() == reflect.Interface {
+			continue
+		}
+
+		// Can only inject Pointers from here on.
+		if !isStructPtr(fieldType) {
+			return fmt.Errorf(
+				"found inject tag on non-pointer field %s in type %s",
+				o.reflectType.Elem().Field(i).Name,
+				o.reflectType,
+			)
 		}
 
 		// Unless it's a private inject, we'll look for an existing instance of the
@@ -266,7 +271,11 @@ StructLoop:
 }
 
 func (g *Graph) populateUnnamedInterface(o *Object) error {
-StructLoop:
+	// Ignore named value types.
+	if o.Name != "" && !isStructPtr(o.reflectType) {
+		return nil
+	}
+
 	for i := 0; i < o.reflectValue.Elem().NumField(); i++ {
 		field := o.reflectValue.Elem().Field(i)
 		fieldType := field.Type()
@@ -303,24 +312,13 @@ StructLoop:
 		}
 
 		// Don't overwrite existing values.
-		if !field.IsNil() {
+		if !isNilOrZero(field, fieldType) {
 			continue
 		}
 
-		// Named injects must have been explicitly provided.
+		// Named injects must have already been handled in populateExplicit.
 		if tag.Name != "" {
-			existing := g.named[tag.Name]
-			if existing == nil {
-				return fmt.Errorf(
-					"did not find object named %s required by field %s in type %s",
-					tag.Name,
-					o.reflectType.Elem().Field(i).Name,
-					o.reflectType,
-				)
-			}
-			existing.assignedCount += 1
-			field.Set(reflect.ValueOf(existing.Value))
-			continue StructLoop
+			panic(fmt.Sprintf("unhandled named instance with name %s", tag.Name))
 		}
 
 		// Find one, and only one assignable value for the field.
@@ -437,4 +435,13 @@ func extractTag(tag string) (bool, string, error) {
 
 func isStructPtr(t reflect.Type) bool {
 	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
+}
+
+func isNilOrZero(v reflect.Value, t reflect.Type) bool {
+	switch v.Kind() {
+	default:
+		return reflect.DeepEqual(v.Interface(), reflect.Zero(t).Interface())
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	}
 }
