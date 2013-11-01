@@ -45,13 +45,12 @@ func Populate(values ...interface{}) error {
 
 // An Object in the Graph.
 type Object struct {
-	Value         interface{}
-	Name          string // Optional
-	Complete      bool   // If true, the Value will be considered complete
-	reflectType   reflect.Type
-	reflectValue  reflect.Value
-	assignedCount uint
-	private       bool // If true, the Value will not be used and will only be populated
+	Value        interface{}
+	Name         string // Optional
+	Complete     bool   // If true, the Value will be considered complete
+	reflectType  reflect.Type
+	reflectValue reflect.Value
+	private      bool // If true, the Value will not be used and will only be populated
 }
 
 // The Graph of Objects.
@@ -226,7 +225,6 @@ StructLoop:
 				)
 			}
 
-			existing.assignedCount += 1
 			field.Set(reflect.ValueOf(existing.Value))
 			continue StructLoop
 		}
@@ -273,7 +271,6 @@ StructLoop:
 					continue
 				}
 				if existing.reflectType.AssignableTo(fieldType) {
-					existing.assignedCount += 1
 					field.Set(reflect.ValueOf(existing.Value))
 					continue StructLoop
 				}
@@ -368,7 +365,6 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 					)
 				}
 				found = existing
-				existing.assignedCount += 1
 				field.Set(reflect.ValueOf(existing.Value))
 			}
 		}
