@@ -51,7 +51,7 @@ type Object struct {
 	reflectType   reflect.Type
 	reflectValue  reflect.Value
 	assignedCount uint
-	disallowUse   bool // If true, the Value will not be used and will only be populated
+	private       bool // If true, the Value will not be used and will only be populated
 }
 
 // The Graph of Objects.
@@ -78,7 +78,7 @@ func (g *Graph) Provide(objects ...Object) error {
 				)
 			}
 
-			if !o.disallowUse {
+			if !o.private {
 				if g.unnamedType == nil {
 					g.unnamedType = make(map[string]bool)
 				}
@@ -242,8 +242,8 @@ StructLoop:
 				)
 			}
 			err := g.Provide(Object{
-				Value:       field.Addr().Interface(),
-				disallowUse: true,
+				Value:   field.Addr().Interface(),
+				private: true,
 			})
 			if err != nil {
 				return err
@@ -269,7 +269,7 @@ StructLoop:
 		// same type.
 		if tag != injectPrivate {
 			for _, existing := range g.unnamed {
-				if existing.disallowUse {
+				if existing.private {
 					continue
 				}
 				if existing.reflectType.AssignableTo(fieldType) {
@@ -287,10 +287,12 @@ StructLoop:
 
 		// Add the newly ceated object to the known set of objects unless it's
 		// private.
-		if tag != injectPrivate {
-			if err := g.Provide(Object{Value: newValue.Interface()}); err != nil {
-				return err
-			}
+		err = g.Provide(Object{
+			Value:   newValue.Interface(),
+			private: tag == injectPrivate,
+		})
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -350,7 +352,7 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 		// Find one, and only one assignable value for the field.
 		var found *Object
 		for _, existing := range g.unnamed {
-			if existing.disallowUse {
+			if existing.private {
 				continue
 			}
 			if existing.reflectType.AssignableTo(fieldType) {

@@ -626,3 +626,16 @@ func TestInjectWithStructValue(t *testing.T) {
 		t.Fatal("v.Inline.A is nil")
 	}
 }
+
+func TestPrivateIsFollowed(t *testing.T) {
+	var v struct {
+		A *TypeNestedStruct `inject:"private"`
+	}
+
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.A.A == nil {
+		t.Fatal("v.A.A is nil")
+	}
+}
