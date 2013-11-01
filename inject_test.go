@@ -179,7 +179,7 @@ func TestTagWithOpenQuote(t *testing.T) {
 func TestProvideNonPointer(t *testing.T) {
 	var g inject.Graph
 	var i int
-	err := g.Provide(inject.Object{Value: i})
+	err := g.Provide(&inject.Object{Value: i})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -193,7 +193,7 @@ func TestProvideNonPointer(t *testing.T) {
 func TestProvideNonPointerStruct(t *testing.T) {
 	var g inject.Graph
 	var i *int
-	err := g.Provide(inject.Object{Value: i})
+	err := g.Provide(&inject.Object{Value: i})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -207,12 +207,12 @@ func TestProvideNonPointerStruct(t *testing.T) {
 func TestProvideTwoOfTheSame(t *testing.T) {
 	var g inject.Graph
 	a := TypeAnswerStruct{}
-	err := g.Provide(inject.Object{Value: &a})
+	err := g.Provide(&inject.Object{Value: &a})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = g.Provide(inject.Object{Value: &a})
+	err = g.Provide(&inject.Object{Value: &a})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -240,12 +240,12 @@ func TestProvideTwoWithTheSameName(t *testing.T) {
 	var g inject.Graph
 	const name = "foo"
 	a := TypeAnswerStruct{}
-	err := g.Provide(inject.Object{Value: &a, Name: name})
+	err := g.Provide(&inject.Object{Value: &a, Name: name})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = g.Provide(inject.Object{Value: &a, Name: name})
+	err = g.Provide(&inject.Object{Value: &a, Name: name})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -259,14 +259,14 @@ func TestProvideTwoWithTheSameName(t *testing.T) {
 func TestNamedInstanceWithDependencies(t *testing.T) {
 	var g inject.Graph
 	a := &TypeNestedStruct{}
-	if err := g.Provide(inject.Object{Value: a, Name: "foo"}); err != nil {
+	if err := g.Provide(&inject.Object{Value: a, Name: "foo"}); err != nil {
 		t.Fatal(err)
 	}
 
 	var c struct {
 		A *TypeNestedStruct `inject:"foo"`
 	}
-	if err := g.Provide(inject.Object{Value: &c}); err != nil {
+	if err := g.Provide(&inject.Object{Value: &c}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -283,11 +283,11 @@ func TestTwoNamedInstances(t *testing.T) {
 	var g inject.Graph
 	a := &TypeAnswerStruct{}
 	b := &TypeAnswerStruct{}
-	if err := g.Provide(inject.Object{Value: a, Name: "foo"}); err != nil {
+	if err := g.Provide(&inject.Object{Value: a, Name: "foo"}); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := g.Provide(inject.Object{Value: b, Name: "bar"}); err != nil {
+	if err := g.Provide(&inject.Object{Value: b, Name: "bar"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -295,7 +295,7 @@ func TestTwoNamedInstances(t *testing.T) {
 		A *TypeAnswerStruct `inject:"foo"`
 		B *TypeAnswerStruct `inject:"bar"`
 	}
-	if err := g.Provide(inject.Object{Value: &c}); err != nil {
+	if err := g.Provide(&inject.Object{Value: &c}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -333,7 +333,7 @@ func TestCompleteProvides(t *testing.T) {
 	var v struct {
 		A *TypeAnswerStruct `inject:""`
 	}
-	if err := g.Provide(inject.Object{Value: &v, Complete: true}); err != nil {
+	if err := g.Provide(&inject.Object{Value: &v, Complete: true}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -350,7 +350,7 @@ func TestCompleteNamedProvides(t *testing.T) {
 	var v struct {
 		A *TypeAnswerStruct `inject:""`
 	}
-	if err := g.Provide(inject.Object{Value: &v, Complete: true, Name: "foo"}); err != nil {
+	if err := g.Provide(&inject.Object{Value: &v, Complete: true, Name: "foo"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -407,12 +407,12 @@ type TypeWithInvalidNamedType struct {
 func TestInvalidNamedInstanceType(t *testing.T) {
 	var g inject.Graph
 	a := &TypeAnswerStruct{}
-	if err := g.Provide(inject.Object{Value: a, Name: "foo"}); err != nil {
+	if err := g.Provide(&inject.Object{Value: a, Name: "foo"}); err != nil {
 		t.Fatal(err)
 	}
 
 	var c TypeWithInvalidNamedType
-	if err := g.Provide(inject.Object{Value: &c}); err != nil {
+	if err := g.Provide(&inject.Object{Value: &c}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -507,7 +507,7 @@ type TypeInjectNamedTwoSatisfyInterface struct {
 func TestInjectNamedTwoSatisfyInterface(t *testing.T) {
 	var g inject.Graph
 	var v TypeInjectNamedTwoSatisfyInterface
-	if err := g.Provide(inject.Object{Name: "foo", Value: &v}); err != nil {
+	if err := g.Provide(&inject.Object{Name: "foo", Value: &v}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -529,7 +529,7 @@ type TypeWithInjectNamedOnPrivateInterfaceField struct {
 func TestInjectNamedOnPrivateInterfaceField(t *testing.T) {
 	var g inject.Graph
 	var v TypeWithInjectNamedOnPrivateInterfaceField
-	if err := g.Provide(inject.Object{Name: "foo", Value: &v}); err != nil {
+	if err := g.Provide(&inject.Object{Name: "foo", Value: &v}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -550,12 +550,12 @@ type TypeWithNonPointerNamedInject struct {
 
 func TestErrorOnNonPointerNamedInject(t *testing.T) {
 	var g inject.Graph
-	if err := g.Provide(inject.Object{Name: "foo", Value: 42}); err != nil {
+	if err := g.Provide(&inject.Object{Name: "foo", Value: 42}); err != nil {
 		t.Fatal(err)
 	}
 
 	var v TypeWithNonPointerNamedInject
-	if err := g.Provide(inject.Object{Value: &v}); err != nil {
+	if err := g.Provide(&inject.Object{Value: &v}); err != nil {
 		t.Fatal(err)
 	}
 

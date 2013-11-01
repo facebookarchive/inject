@@ -36,7 +36,7 @@ import (
 func Populate(values ...interface{}) error {
 	var g Graph
 	for _, v := range values {
-		if err := g.Provide(Object{Value: v}); err != nil {
+		if err := g.Provide(&Object{Value: v}); err != nil {
 			return err
 		}
 	}
@@ -51,6 +51,7 @@ type Object struct {
 	reflectType  reflect.Type
 	reflectValue reflect.Value
 	private      bool // If true, the Value will not be used and will only be populated
+	level        int
 }
 
 // The Graph of Objects.
@@ -58,11 +59,13 @@ type Graph struct {
 	unnamed     []*Object
 	unnamedType map[string]bool
 	named       map[string]*Object
+	maxLevel    int
+	levels      [][]*Object
 }
 
 // Provide objects to the Graph. The Object documentation describes
 // the impact of various fields.
-func (g *Graph) Provide(objects ...Object) error {
+func (g *Graph) Provide(objects ...*Object) error {
 	for _, o := range objects {
 		o.reflectType = reflect.TypeOf(o.Value)
 		o.reflectValue = reflect.ValueOf(o.Value)
@@ -91,7 +94,7 @@ func (g *Graph) Provide(objects ...Object) error {
 				}
 				g.unnamedType[key] = true
 			}
-			g.unnamed = append(g.unnamed, &o)
+			g.unnamed = append(g.unnamed, o)
 		} else {
 			if g.named == nil {
 				g.named = make(map[string]*Object)
@@ -100,7 +103,7 @@ func (g *Graph) Provide(objects ...Object) error {
 			if g.named[o.Name] != nil {
 				return fmt.Errorf("provided two instances named %s", o.Name)
 			}
-			g.named[o.Name] = &o
+			g.named[o.Name] = o
 		}
 	}
 	return nil
@@ -158,6 +161,15 @@ func (g *Graph) Populate() error {
 		if err := g.populateUnnamedInterface(o); err != nil {
 			return err
 		}
+	}
+
+	// Finally we build the levels.
+	g.levels = make([][]*Object, g.maxLevel+1)
+	for _, o := range g.unnamed {
+		g.levels[o.level] = append(g.levels[o.level], o)
+	}
+	for _, o := range g.named {
+		g.levels[o.level] = append(g.levels[o.level], o)
 	}
 
 	return nil
@@ -226,6 +238,7 @@ StructLoop:
 			}
 
 			field.Set(reflect.ValueOf(existing.Value))
+			g.updateLevel(o, existing)
 			continue StructLoop
 		}
 
@@ -239,9 +252,16 @@ StructLoop:
 					o.reflectType,
 				)
 			}
-			err := g.Provide(Object{
+
+			newLevel := o.level + 1
+			if g.maxLevel < newLevel {
+				g.maxLevel = newLevel
+			}
+
+			err := g.Provide(&Object{
 				Value:   field.Addr().Interface(),
 				private: true,
+				level:   newLevel,
 			})
 			if err != nil {
 				return err
@@ -272,6 +292,7 @@ StructLoop:
 				}
 				if existing.reflectType.AssignableTo(fieldType) {
 					field.Set(reflect.ValueOf(existing.Value))
+					g.updateLevel(o, existing)
 					continue StructLoop
 				}
 			}
@@ -282,10 +303,16 @@ StructLoop:
 		newValue := reflect.New(fieldType.Elem())
 		field.Set(newValue)
 
+		newLevel := o.level + 1
+		if g.maxLevel < newLevel {
+			g.maxLevel = newLevel
+		}
+
 		// Add the newly ceated object to the known set of objects.
-		err = g.Provide(Object{
+		err = g.Provide(&Object{
 			Value:   newValue.Interface(),
 			private: tag == injectPrivate,
+			level:   newLevel,
 		})
 		if err != nil {
 			return err
@@ -366,6 +393,7 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 				}
 				found = existing
 				field.Set(reflect.ValueOf(existing.Value))
+				g.updateLevel(o, existing)
 			}
 		}
 
@@ -379,6 +407,23 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 		}
 	}
 	return nil
+}
+
+func (g *Graph) updateLevel(use *Object, dep *Object) {
+	newLevel := use.level + 1
+	if newLevel <= dep.level {
+		return
+	}
+	dep.level = newLevel
+	if g.maxLevel < newLevel {
+		g.maxLevel = newLevel
+	}
+}
+
+// Return grouped levels of the Object Graph.
+func (g *Graph) Levels() [][]*Object {
+	// TODO: copy?
+	return g.levels
 }
 
 var (

@@ -66,8 +66,8 @@ func Example() {
 	// the dependency since it implements the interface:
 	var a HomePlanetRenderApp
 	err := g.Provide(
-		inject.Object{Value: &a},
-		inject.Object{Value: http.DefaultTransport},
+		&inject.Object{Value: &a},
+		&inject.Object{Value: http.DefaultTransport},
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
