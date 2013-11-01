@@ -285,8 +285,7 @@ StructLoop:
 		newValue := reflect.New(fieldType.Elem())
 		field.Set(newValue)
 
-		// Add the newly ceated object to the known set of objects unless it's
-		// private.
+		// Add the newly ceated object to the known set of objects.
 		err = g.Provide(Object{
 			Value:   newValue.Interface(),
 			private: tag == injectPrivate,
