@@ -567,3 +567,62 @@ func TestErrorOnNonPointerNamedInject(t *testing.T) {
 		t.Fatalf("expected v.A = 42 but got %d", v.A)
 	}
 }
+
+func TestInjectInline(t *testing.T) {
+	var v struct {
+		Inline struct {
+			A *TypeAnswerStruct `inject:""`
+			B *TypeNestedStruct `inject:""`
+		} `inject:""`
+	}
+
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.Inline.A == nil {
+		t.Fatal("v.Inline.A is nil")
+	}
+	if v.Inline.B == nil {
+		t.Fatal("v.Inline.B is nil")
+	}
+	if v.Inline.B.A == nil {
+		t.Fatal("v.Inline.B.A is nil")
+	}
+	if v.Inline.A != v.Inline.B.A {
+		t.Fatal("got different instances of A")
+	}
+}
+
+type TypeWithInlineStructWithPrivate struct {
+	Inline struct {
+		A *TypeAnswerStruct `inject:""`
+		B *TypeNestedStruct `inject:""`
+	} `inject:"private"`
+}
+
+func TestInjectInlinePrivate(t *testing.T) {
+	var v TypeWithInlineStructWithPrivate
+	err := inject.Populate(&v)
+	if err == nil {
+		t.Fatal("was expecting an error")
+	}
+
+	const msg = "cannot use private inject on inline struct on field Inline in type *inject_test.TypeWithInlineStructWithPrivate"
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
+
+type TypeWithStructValue struct {
+	Inline TypeNestedStruct `inject:""`
+}
+
+func TestInjectWithStructValue(t *testing.T) {
+	var v TypeWithStructValue
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.Inline.A == nil {
+		t.Fatal("v.Inline.A is nil")
+	}
+}

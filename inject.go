@@ -51,6 +51,7 @@ type Object struct {
 	reflectType   reflect.Type
 	reflectValue  reflect.Value
 	assignedCount uint
+	disallowUse   bool // If true, the Value will not be used and will only be populated
 }
 
 // The Graph of Objects.
@@ -77,18 +78,20 @@ func (g *Graph) Provide(objects ...Object) error {
 				)
 			}
 
-			if g.unnamedType == nil {
-				g.unnamedType = make(map[string]bool)
-			}
+			if !o.disallowUse {
+				if g.unnamedType == nil {
+					g.unnamedType = make(map[string]bool)
+				}
 
-			key := fmt.Sprint(o.reflectType)
-			if g.unnamedType[key] {
-				return fmt.Errorf(
-					"provided two unnamed instances of type %s",
-					o.reflectType,
-				)
+				key := fmt.Sprint(o.reflectType)
+				if g.unnamedType[key] {
+					return fmt.Errorf(
+						"provided two unnamed instances of type %s",
+						o.reflectType,
+					)
+				}
+				g.unnamedType[key] = true
 			}
-			g.unnamedType[key] = true
 			g.unnamed = append(g.unnamed, &o)
 		} else {
 			if g.named == nil {
@@ -228,6 +231,26 @@ StructLoop:
 			continue StructLoop
 		}
 
+		// Inline struct values indicate we want to traverse into it, but not
+		// inject itself.
+		if fieldType.Kind() == reflect.Struct {
+			if tag == injectPrivate {
+				return fmt.Errorf(
+					"cannot use private inject on inline struct on field %s in type %s",
+					o.reflectType.Elem().Field(i).Name,
+					o.reflectType,
+				)
+			}
+			err := g.Provide(Object{
+				Value:       field.Addr().Interface(),
+				disallowUse: true,
+			})
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		// Interface injection is handled in a second pass.
 		if fieldType.Kind() == reflect.Interface {
 			continue
@@ -246,6 +269,9 @@ StructLoop:
 		// same type.
 		if tag != injectPrivate {
 			for _, existing := range g.unnamed {
+				if existing.disallowUse {
+					continue
+				}
 				if existing.reflectType.AssignableTo(fieldType) {
 					existing.assignedCount += 1
 					field.Set(reflect.ValueOf(existing.Value))
@@ -324,6 +350,9 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 		// Find one, and only one assignable value for the field.
 		var found *Object
 		for _, existing := range g.unnamed {
+			if existing.disallowUse {
+				continue
+			}
 			if existing.reflectType.AssignableTo(fieldType) {
 				if found != nil {
 					return fmt.Errorf(
