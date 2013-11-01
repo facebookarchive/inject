@@ -10,7 +10,7 @@ import (
 
 // Our Awesome Application renders a message using two APIs in our fake
 // world.
-type AwesomeApp struct {
+type HomePlanetRenderApp struct {
 	// The tags below indicate to the inject library that these fields are
 	// eligible for injection. They do not specify any options, and will
 	// result in a singleton instance created for each of the APIs.
@@ -19,7 +19,7 @@ type AwesomeApp struct {
 	PlanetAPI *PlanetAPI `inject:""`
 }
 
-func (a *AwesomeApp) Render(id uint64) string {
+func (a *HomePlanetRenderApp) Render(id uint64) string {
 	return fmt.Sprintf(
 		"%s is from the planet %s.",
 		a.NameAPI.Name(id),
@@ -56,15 +56,15 @@ func Example() {
 	// you will create it and use it within a main function:
 	var g inject.Graph
 
-	// We provide our graph two "seed" objects, one our empty AwesomeApp
-	// instance which we're hoping to get filled out, and second our
-	// DefaultTransport to satisfiy our HttpTransport dependency. We have
-	// to provide the DefaultTransport because the dependency is defined
-	// in terms of the http.RoundTripper interface, and since it is an
-	// interface the library cannot create an instance for it. Instead it
-	// will use the given DefaultTransport to satisfy the dependency since
-	// it implements the interface:
-	var a AwesomeApp
+	// We provide our graph two "seed" objects, one our empty
+	// HomePlanetRenderApp instance which we're hoping to get filled out,
+	// and second our DefaultTransport to satisfiy our HttpTransport
+	// dependency. We have to provide the DefaultTransport because the
+	// dependency is defined in terms of the http.RoundTripper interface,
+	// and since it is an interface the library cannot create an instance
+	// for it. Instead it will use the given DefaultTransport to satisfy
+	// the dependency since it implements the interface:
+	var a HomePlanetRenderApp
 	err := g.Provide(
 		inject.Object{Value: &a},
 		inject.Object{Value: http.DefaultTransport},
