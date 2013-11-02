@@ -657,3 +657,26 @@ func TestDoesNotOverwriteInterface(t *testing.T) {
 		t.Fatal("v.B is nil")
 	}
 }
+
+func TestInterfaceIncludingPrivate(t *testing.T) {
+	var v struct {
+		A Answerable        `inject:""`
+		B *TypeNestedStruct `inject:"private"`
+		C *TypeAnswerStruct `inject:""`
+	}
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.A == nil {
+		t.Fatal("v.A is nil")
+	}
+	if v.B == nil {
+		t.Fatal("v.B is nil")
+	}
+	if v.C == nil {
+		t.Fatal("v.C is nil")
+	}
+	if v.A != v.C {
+		t.Fatal("v.A != v.C")
+	}
+}
