@@ -639,3 +639,21 @@ func TestPrivateIsFollowed(t *testing.T) {
 		t.Fatal("v.A.A is nil")
 	}
 }
+
+func TestDoesNotOverwriteInterface(t *testing.T) {
+	a := &TypeAnswerStruct{}
+	var v struct {
+		A Answerable        `inject:""`
+		B *TypeNestedStruct `inject:""`
+	}
+	v.A = a
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.A != a {
+		t.Fatal("original A was lost")
+	}
+	if v.B == nil {
+		t.Fatal("v.B is nil")
+	}
+}
