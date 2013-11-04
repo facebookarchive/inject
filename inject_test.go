@@ -55,7 +55,7 @@ func TestErrorOnNonPointerInject(t *testing.T) {
 		t.Fatalf("expected error for %+v", a)
 	}
 
-	const msg = "found inject tag on non-pointer field A in type *inject_test.TypeWithNonPointerInject"
+	const msg = "found inject tag on unsupported field A in type *inject_test.TypeWithNonPointerInject"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -72,7 +72,7 @@ func TestErrorOnNonPointerStructInject(t *testing.T) {
 		t.Fatalf("expected error for %+v", a)
 	}
 
-	const msg = "found inject tag on non-pointer field A in type *inject_test.TypeWithNonPointerStructInject"
+	const msg = "found inject tag on unsupported field A in type *inject_test.TypeWithNonPointerStructInject"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}

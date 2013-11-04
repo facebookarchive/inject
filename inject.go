@@ -291,7 +291,7 @@ StructLoop:
 		// Can only inject Pointers from here on.
 		if !isStructPtr(fieldType) {
 			return fmt.Errorf(
-				"found inject tag on non-pointer field %s in type %s",
+				"found inject tag on unsupported field %s in type %s",
 				o.reflectType.Elem().Field(i).Name,
 				o.reflectType,
 			)
