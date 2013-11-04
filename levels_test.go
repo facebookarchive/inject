@@ -74,5 +74,4 @@ func TestLevels(t *testing.T) {
 	if levels[3][0].Value != b.C {
 		t.Fatal("did not find LevelC")
 	}
-	t.Log(levels)
 }
