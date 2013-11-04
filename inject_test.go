@@ -679,4 +679,7 @@ func TestInterfaceIncludingPrivate(t *testing.T) {
 	if v.A != v.C {
 		t.Fatal("v.A != v.C")
 	}
+	if v.A == v.B {
+		t.Fatal("v.A == v.B")
+	}
 }
