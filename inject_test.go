@@ -696,16 +696,18 @@ func TestInjectMap(t *testing.T) {
 	}
 }
 
+type TypeInjectWithMapWithoutPrivate struct {
+	A map[string]int `inject:""`
+}
+
 func TestInjectMapWithoutPrivate(t *testing.T) {
-	var v struct {
-		A map[string]int `inject:""`
-	}
+	var v TypeInjectWithMapWithoutPrivate
 	err := inject.Populate(&v)
 	if err == nil {
 		t.Fatalf("expected error for %+v", v)
 	}
 
-	const msg = `inject on map field A in type *struct { A map[string]int "inject:\"\"" } must be named or private`
+	const msg = "inject on map field A in type *inject_test.TypeInjectWithMapWithoutPrivate must be named or private"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
