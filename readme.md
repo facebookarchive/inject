@@ -9,4 +9,3 @@ TODO
 
 - make inject maps
 - cycle detection
-- provide inside out and outside in iteration on the objects in the graph
