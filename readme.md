@@ -7,5 +7,4 @@ Documentation: http://godoc.org/github.com/daaku/go.inject
 TODO
 ====
 
-- make inject maps
 - cycle detection

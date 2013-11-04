@@ -274,6 +274,20 @@ StructLoop:
 			continue
 		}
 
+		// Maps are created and required to be private.
+		if fieldType.Kind() == reflect.Map {
+			if tag != injectPrivate {
+				return fmt.Errorf(
+					"inject on map field %s in type %s must be named or private",
+					o.reflectType.Elem().Field(i).Name,
+					o.reflectType,
+				)
+			}
+
+			field.Set(reflect.MakeMap(fieldType))
+			continue
+		}
+
 		// Can only inject Pointers from here on.
 		if !isStructPtr(fieldType) {
 			return fmt.Errorf(

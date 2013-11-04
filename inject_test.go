@@ -683,3 +683,30 @@ func TestInterfaceIncludingPrivate(t *testing.T) {
 		t.Fatal("v.A == v.B")
 	}
 }
+
+func TestInjectMap(t *testing.T) {
+	var v struct {
+		A map[string]int `inject:"private"`
+	}
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.A == nil {
+		t.Fatal("v.A is nil")
+	}
+}
+
+func TestInjectMapWithoutPrivate(t *testing.T) {
+	var v struct {
+		A map[string]int `inject:""`
+	}
+	err := inject.Populate(&v)
+	if err == nil {
+		t.Fatalf("expected error for %+v", v)
+	}
+
+	const msg = `inject on map field A in type *struct { A map[string]int "inject:\"\"" } must be named or private`
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
