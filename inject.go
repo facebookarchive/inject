@@ -26,10 +26,10 @@
 package inject
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
+
+	"github.com/ParsePlatform/go.structtag"
 )
 
 // Short-hand for populating a graph with the given incomplete object values.
@@ -451,7 +451,7 @@ type tag struct {
 }
 
 func parseTag(t string) (*tag, error) {
-	found, value, err := extractTag(t)
+	found, value, err := structtag.Extract("inject", t)
 	if err != nil {
 		return nil, err
 	}
@@ -465,57 +465,6 @@ func parseTag(t string) (*tag, error) {
 		return injectPrivate, nil
 	}
 	return &tag{Name: value}, nil
-}
-
-var errInvalidTag = errors.New("invalid tag")
-
-func extractTag(tag string) (bool, string, error) {
-	for tag != "" {
-		// skip leading space
-		i := 0
-		for i < len(tag) && tag[i] == ' ' {
-			i++
-		}
-		tag = tag[i:]
-		if tag == "" {
-			break
-		}
-
-		// scan to colon.
-		// a space or a quote is a syntax error
-		i = 0
-		for i < len(tag) && tag[i] != ' ' && tag[i] != ':' && tag[i] != '"' {
-			i++
-		}
-		if i+1 >= len(tag) || tag[i] != ':' || tag[i+1] != '"' {
-			return false, "", errInvalidTag
-		}
-		name := string(tag[:i])
-		tag = tag[i+1:]
-
-		// scan quoted string to find value
-		i = 1
-		for i < len(tag) && tag[i] != '"' {
-			if tag[i] == '\\' {
-				i++
-			}
-			i++
-		}
-		if i >= len(tag) {
-			return false, "", errInvalidTag
-		}
-		qvalue := string(tag[:i+1])
-		tag = tag[i+1:]
-
-		if "inject" == name {
-			value, err := strconv.Unquote(qvalue)
-			if err != nil {
-				return false, "", err
-			}
-			return true, value, nil
-		}
-	}
-	return false, "", nil
 }
 
 func isStructPtr(t reflect.Type) bool {
