@@ -3,7 +3,7 @@ package inject_test
 import (
 	"testing"
 
-	"github.com/daaku/go.inject"
+	"github.com/ParsePlatform/go.inject"
 )
 
 type Answerable interface {

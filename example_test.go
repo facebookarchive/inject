@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/daaku/go.inject"
+	"github.com/ParsePlatform/go.inject"
 )
 
 // Our Awesome Application renders a message using two APIs in our fake
