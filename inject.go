@@ -26,6 +26,7 @@
 package inject
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 
@@ -52,6 +53,16 @@ type Object struct {
 	reflectValue reflect.Value
 	private      bool // If true, the Value will not be used and will only be populated
 	level        int
+}
+
+// String representation suitable for human consumption.
+func (o *Object) String() string {
+	var buf bytes.Buffer
+	fmt.Fprint(&buf, o.reflectType)
+	if o.Name != "" {
+		fmt.Fprintf(&buf, " named %s", o.Name)
+	}
+	return buf.String()
 }
 
 // The Graph of Objects.

@@ -1,6 +1,7 @@
 package inject_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ParsePlatform/go.inject"
@@ -710,5 +711,41 @@ func TestInjectMapWithoutPrivate(t *testing.T) {
 	const msg = "inject on map field A in type *inject_test.TypeInjectWithMapWithoutPrivate must be named or private"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
+
+type TypeForObjectString struct {
+	A *TypeNestedStruct `inject:"foo"`
+	B *TypeNestedStruct `inject:""`
+}
+
+func TestObjectString(t *testing.T) {
+	var g inject.Graph
+	a := &TypeNestedStruct{}
+	if err := g.Provide(&inject.Object{Value: a, Name: "foo"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var c TypeForObjectString
+	if err := g.Provide(&inject.Object{Value: &c}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := [][]string{
+		{"*inject_test.TypeForObjectString"},
+		{"*inject_test.TypeNestedStruct", "*inject_test.TypeNestedStruct named foo"},
+		{"*inject_test.TypeAnswerStruct"},
+	}
+
+	for i, level := range g.Levels() {
+		for j, o := range level {
+			if actual := fmt.Sprint(o); actual != expected[i][j] {
+				t.Fatalf("expected %s but got %s", expected[i][j], actual)
+			}
+		}
 	}
 }
