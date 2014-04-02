@@ -3,7 +3,7 @@ package inject_test
 import (
 	"testing"
 
-	"github.com/ParsePlatform/go.inject"
+	"github.com/facebookgo/inject"
 )
 
 type LevelA struct {

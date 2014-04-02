@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ParsePlatform/go.inject"
+	"github.com/facebookgo/inject"
 )
 
 type Answerable interface {
@@ -747,5 +747,74 @@ func TestObjectString(t *testing.T) {
 				t.Fatalf("expected %s but got %s", expected[i][j], actual)
 			}
 		}
+	}
+}
+
+type logger struct {
+	Expected []string
+	T        testing.TB
+	next     int
+}
+
+func (l *logger) Debugf(f string, v ...interface{}) {
+	actual := fmt.Sprintf(f, v...)
+	if l.next == len(l.Expected) {
+		l.T.Fatalf(`unexpected log "%s"`, actual)
+	}
+	expected := l.Expected[l.next]
+	if actual != expected {
+		l.T.Fatalf(`expected log "%s" got "%s"`, expected, actual)
+	}
+	l.next++
+}
+
+type TypeForLoggingInterface interface {
+	Foo()
+}
+
+type TypeForLoggingCreated struct{}
+
+func (t TypeForLoggingCreated) Foo() {}
+
+type TypeForLoggingEmbedded struct {
+	TypeForLoggingCreated      *TypeForLoggingCreated  `inject:""`
+	TypeForLoggingInterface    TypeForLoggingInterface `inject:""`
+	TypeForLoggingCreatedNamed *TypeForLoggingCreated  `inject:"name_for_logging"`
+	Map                        map[string]string       `inject:"private"`
+}
+
+type TypeForLogging struct {
+	TypeForLoggingEmbedded `inject:""`
+	TypeForLoggingCreated  *TypeForLoggingCreated `inject:""`
+}
+
+func TestInjectLogging(t *testing.T) {
+	g := inject.Graph{
+		Logger: &logger{
+			Expected: []string{
+				"provided *inject_test.TypeForLoggingCreated named name_for_logging",
+				"provided *inject_test.TypeForLogging",
+				"provided embedded *inject_test.TypeForLoggingEmbedded",
+				"created *inject_test.TypeForLoggingCreated",
+				"assigned newly created *inject_test.TypeForLoggingCreated to field TypeForLoggingCreated in *inject_test.TypeForLogging",
+				"assigned existing *inject_test.TypeForLoggingCreated to field TypeForLoggingCreated in *inject_test.TypeForLoggingEmbedded",
+				"assigned *inject_test.TypeForLoggingCreated named name_for_logging to field TypeForLoggingCreatedNamed in *inject_test.TypeForLoggingEmbedded",
+				"made map for field Map in *inject_test.TypeForLoggingEmbedded",
+				"assigned existing *inject_test.TypeForLoggingCreated to interface field TypeForLoggingInterface in *inject_test.TypeForLoggingEmbedded",
+			},
+			T: t,
+		},
+	}
+	var v TypeForLogging
+
+	err := g.Provide(
+		&inject.Object{Value: &TypeForLoggingCreated{}, Name: "name_for_logging"},
+		&inject.Object{Value: &v},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
 	}
 }

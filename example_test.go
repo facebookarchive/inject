@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ParsePlatform/go.inject"
+	"github.com/facebookgo/inject"
 )
 
 // Our Awesome Application renders a message using two APIs in our fake
@@ -33,21 +33,21 @@ type NameAPI struct {
 	// This value cannot automatically be created (by definition) and
 	// hence must be explicitly provided to the graph.
 
-	HttpTransport http.RoundTripper `inject:""`
+	HTTPTransport http.RoundTripper `inject:""`
 }
 
 func (n *NameAPI) Name(id uint64) string {
-	// in the real world we would use f.HttpTransport and fetch the name
+	// in the real world we would use f.HTTPTransport and fetch the name
 	return "Spock"
 }
 
 // Our fake Planet API.
 type PlanetAPI struct {
-	HttpTransport http.RoundTripper `inject:""`
+	HTTPTransport http.RoundTripper `inject:""`
 }
 
 func (p *PlanetAPI) Planet(id uint64) string {
-	// in the real world we would use f.HttpTransport and fetch the planet
+	// in the real world we would use f.HTTPTransport and fetch the planet
 	return "Vulcan"
 }
 
@@ -58,7 +58,7 @@ func Example() {
 
 	// We provide our graph two "seed" objects, one our empty
 	// HomePlanetRenderApp instance which we're hoping to get filled out,
-	// and second our DefaultTransport to satisfiy our HttpTransport
+	// and second our DefaultTransport to satisfiy our HTTPTransport
 	// dependency. We have to provide the DefaultTransport because the
 	// dependency is defined in terms of the http.RoundTripper interface,
 	// and since it is an interface the library cannot create an instance
@@ -75,7 +75,7 @@ func Example() {
 	}
 
 	// Here the Populate call is creating instances of NameAPI &
-	// PlanetAPI, and setting the HttpTransport on both to the
+	// PlanetAPI, and setting the HTTPTransport on both to the
 	// http.DefaultTransport provided above:
 	if err := g.Populate(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

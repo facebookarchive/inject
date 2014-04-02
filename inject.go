@@ -30,10 +30,17 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ParsePlatform/go.structtag"
+	"github.com/facebookgo/structtag"
 )
 
-// Short-hand for populating a graph with the given incomplete object values.
+// Logger allows for simple logging as inject traverses and populates the
+// object graph.
+type Logger interface {
+	Debugf(format string, v ...interface{})
+}
+
+// Populate is a short-hand for populating a graph with the given incomplete
+// object values.
 func Populate(values ...interface{}) error {
 	var g Graph
 	for _, v := range values {
@@ -53,6 +60,8 @@ type Object struct {
 	reflectValue reflect.Value
 	private      bool // If true, the Value will not be used and will only be populated
 	level        int
+	created      bool // If true, the Object was created by us
+	embedded     bool // If true, the Object is an embedded struct provided internally
 }
 
 // String representation suitable for human consumption.
@@ -67,6 +76,7 @@ func (o *Object) String() string {
 
 // The Graph of Objects.
 type Graph struct {
+	Logger      Logger // Optional, will trigger debug logging.
 	unnamed     []*Object
 	unnamedType map[string]bool
 	named       map[string]*Object
@@ -115,6 +125,16 @@ func (g *Graph) Provide(objects ...*Object) error {
 				return fmt.Errorf("provided two instances named %s", o.Name)
 			}
 			g.named[o.Name] = o
+		}
+
+		if g.Logger != nil {
+			if o.created {
+				g.Logger.Debugf("created %s", o)
+			} else if o.embedded {
+				g.Logger.Debugf("provided embedded %s", o)
+			} else {
+				g.Logger.Debugf("provided %s", o)
+			}
 		}
 	}
 	return nil
@@ -249,6 +269,14 @@ StructLoop:
 			}
 
 			field.Set(reflect.ValueOf(existing.Value))
+			if g.Logger != nil {
+				g.Logger.Debugf(
+					"assigned %s to field %s in %s",
+					existing,
+					o.reflectType.Elem().Field(i).Name,
+					o,
+				)
+			}
 			g.updateLevel(o, existing)
 			continue StructLoop
 		}
@@ -270,9 +298,10 @@ StructLoop:
 			}
 
 			err := g.Provide(&Object{
-				Value:   field.Addr().Interface(),
-				private: true,
-				level:   newLevel,
+				Value:    field.Addr().Interface(),
+				private:  true,
+				level:    newLevel,
+				embedded: true,
 			})
 			if err != nil {
 				return err
@@ -296,6 +325,13 @@ StructLoop:
 			}
 
 			field.Set(reflect.MakeMap(fieldType))
+			if g.Logger != nil {
+				g.Logger.Debugf(
+					"made map for field %s in %s",
+					o.reflectType.Elem().Field(i).Name,
+					o,
+				)
+			}
 			continue
 		}
 
@@ -317,6 +353,14 @@ StructLoop:
 				}
 				if existing.reflectType.AssignableTo(fieldType) {
 					field.Set(reflect.ValueOf(existing.Value))
+					if g.Logger != nil {
+						g.Logger.Debugf(
+							"assigned existing %s to field %s in %s",
+							existing,
+							o.reflectType.Elem().Field(i).Name,
+							o,
+						)
+					}
 					g.updateLevel(o, existing)
 					continue StructLoop
 				}
@@ -326,21 +370,32 @@ StructLoop:
 		// Did not find an existing Object of the type we want or injectPrivate,
 		// we'll create one.
 		newValue := reflect.New(fieldType.Elem())
-		field.Set(newValue)
-
 		newLevel := o.level + 1
 		if g.maxLevel < newLevel {
 			g.maxLevel = newLevel
 		}
-
-		// Add the newly ceated object to the known set of objects.
-		err = g.Provide(&Object{
+		newObject := &Object{
 			Value:   newValue.Interface(),
 			private: tag == injectPrivate,
 			level:   newLevel,
-		})
+			created: true,
+		}
+
+		// Add the newly ceated object to the known set of objects.
+		err = g.Provide(newObject)
 		if err != nil {
 			return err
+		}
+
+		// Finally assign the newly created object to our field.
+		field.Set(newValue)
+		if g.Logger != nil {
+			g.Logger.Debugf(
+				"assigned newly created %s to field %s in %s",
+				newObject,
+				o.reflectType.Elem().Field(i).Name,
+				o,
+			)
 		}
 	}
 	return nil
@@ -418,6 +473,14 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 				}
 				found = existing
 				field.Set(reflect.ValueOf(existing.Value))
+				if g.Logger != nil {
+					g.Logger.Debugf(
+						"assigned existing %s to interface field %s in %s",
+						existing,
+						o.reflectType.Elem().Field(i).Name,
+						o,
+					)
+				}
 				g.updateLevel(o, existing)
 			}
 		}
@@ -445,7 +508,7 @@ func (g *Graph) updateLevel(use *Object, dep *Object) {
 	}
 }
 
-// Return grouped levels of the Object Graph.
+// Levels returns a slice of levels of objects of the Object Graph.
 func (g *Graph) Levels() [][]*Object {
 	// TODO: copy?
 	return g.levels
