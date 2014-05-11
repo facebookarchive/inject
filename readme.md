@@ -2,9 +2,3 @@ inject [![Build Status](https://secure.travis-ci.org/facebookgo/inject.png)](htt
 ======
 
 Documentation: http://godoc.org/github.com/facebookgo/inject
-
-
-TODO
-====
-
-- cycle detection
