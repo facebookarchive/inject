@@ -818,3 +818,34 @@ func TestInjectLogging(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+type TypeForNamedWithUnnamedDepSecond struct{}
+
+type TypeForNamedWithUnnamedDepFirst struct {
+	TypeForNamedWithUnnamedDepSecond *TypeForNamedWithUnnamedDepSecond `inject:""`
+}
+
+type TypeForNamedWithUnnamed struct {
+	TypeForNamedWithUnnamedDepFirst *TypeForNamedWithUnnamedDepFirst `inject:""`
+}
+
+func TestForNamedWithUnnamed(t *testing.T) {
+	var g inject.Graph
+	var v TypeForNamedWithUnnamed
+
+	err := g.Provide(
+		&inject.Object{Value: &v, Name: "foo"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
+	}
+	if v.TypeForNamedWithUnnamedDepFirst == nil {
+		t.Fatal("expected TypeForNamedWithUnnamedDepFirst to be populated")
+	}
+	if v.TypeForNamedWithUnnamedDepFirst.TypeForNamedWithUnnamedDepSecond == nil {
+		t.Fatal("expected TypeForNamedWithUnnamedDepSecond to be populated")
+	}
+}

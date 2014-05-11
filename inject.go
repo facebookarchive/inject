@@ -142,6 +142,16 @@ func (g *Graph) Provide(objects ...*Object) error {
 
 // Populate the incomplete Objects.
 func (g *Graph) Populate() error {
+	for _, o := range g.named {
+		if o.Complete {
+			continue
+		}
+
+		if err := g.populateExplicit(o); err != nil {
+			return err
+		}
+	}
+
 	// We append and modify our slice as we go along, so we don't use a standard
 	// range loop, and do a single pass thru each object in our graph.
 	i := 0
@@ -153,16 +163,6 @@ func (g *Graph) Populate() error {
 		o := g.unnamed[i]
 		i++
 
-		if o.Complete {
-			continue
-		}
-
-		if err := g.populateExplicit(o); err != nil {
-			return err
-		}
-	}
-
-	for _, o := range g.named {
 		if o.Complete {
 			continue
 		}
