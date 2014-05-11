@@ -78,7 +78,7 @@ func (o *Object) String() string {
 type Graph struct {
 	Logger      Logger // Optional, will trigger debug logging.
 	unnamed     []*Object
-	unnamedType map[string]bool
+	unnamedType map[reflect.Type]bool
 	named       map[string]*Object
 	maxLevel    int
 	levels      [][]*Object
@@ -103,17 +103,16 @@ func (g *Graph) Provide(objects ...*Object) error {
 
 			if !o.private {
 				if g.unnamedType == nil {
-					g.unnamedType = make(map[string]bool)
+					g.unnamedType = make(map[reflect.Type]bool)
 				}
 
-				key := fmt.Sprint(o.reflectType)
-				if g.unnamedType[key] {
+				if g.unnamedType[o.reflectType] {
 					return fmt.Errorf(
-						"provided two unnamed instances of type %s",
-						o.reflectType,
+						"provided two unnamed instances of type *%s.%s",
+						o.reflectType.Elem().PkgPath(), o.reflectType.Elem().Name(),
 					)
 				}
-				g.unnamedType[key] = true
+				g.unnamedType[o.reflectType] = true
 			}
 			g.unnamed = append(g.unnamed, o)
 		} else {

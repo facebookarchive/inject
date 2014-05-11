@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/facebookgo/inject"
+
+	injecttesta "github.com/facebookgo/inject/injecttesta"
+	injecttestb "github.com/facebookgo/inject/injecttestb"
 )
 
 type Answerable interface {
@@ -218,7 +221,7 @@ func TestProvideTwoOfTheSame(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *inject_test.TypeAnswerStruct"
+	const msg = "provided two unnamed instances of type *github.com/facebookgo/inject_test.TypeAnswerStruct"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -231,7 +234,7 @@ func TestProvideTwoOfTheSameWithPopulate(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *inject_test.TypeAnswerStruct"
+	const msg = "provided two unnamed instances of type *github.com/facebookgo/inject_test.TypeAnswerStruct"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -847,5 +850,19 @@ func TestForNamedWithUnnamed(t *testing.T) {
 	}
 	if v.TypeForNamedWithUnnamedDepFirst.TypeForNamedWithUnnamedDepSecond == nil {
 		t.Fatal("expected TypeForNamedWithUnnamedDepSecond to be populated")
+	}
+}
+
+func TestForSameNameButDifferentPackage(t *testing.T) {
+	var g inject.Graph
+	err := g.Provide(
+		&inject.Object{Value: &injecttesta.Foo{}},
+		&inject.Object{Value: &injecttestb.Foo{}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
 	}
 }
