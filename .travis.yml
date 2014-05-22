@@ -1,3 +1,5 @@
 language: go
 go:
   - 1.2
+install:
+  - go test -i ./...
