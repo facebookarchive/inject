@@ -28,6 +28,7 @@ package inject
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"reflect"
 
 	"github.com/facebookgo/structtag"
@@ -54,12 +55,12 @@ func Populate(values ...interface{}) error {
 // An Object in the Graph.
 type Object struct {
 	Value        interface{}
-	Name         string // Optional
-	Complete     bool   // If true, the Value will be considered complete
+	Name         string             // Optional
+	Complete     bool               // If true, the Value will be considered complete
+	Fields       map[string]*Object // Populated with the field names that were injected and their corresponding *Object.
 	reflectType  reflect.Type
 	reflectValue reflect.Value
 	private      bool // If true, the Value will not be used and will only be populated
-	level        int
 	created      bool // If true, the Object was created by us
 	embedded     bool // If true, the Object is an embedded struct provided internally
 }
@@ -74,14 +75,19 @@ func (o *Object) String() string {
 	return buf.String()
 }
 
+func (o *Object) addDep(field string, dep *Object) {
+	if o.Fields == nil {
+		o.Fields = make(map[string]*Object)
+	}
+	o.Fields[field] = dep
+}
+
 // The Graph of Objects.
 type Graph struct {
 	Logger      Logger // Optional, will trigger debug logging.
 	unnamed     []*Object
 	unnamedType map[reflect.Type]bool
 	named       map[string]*Object
-	maxLevel    int
-	levels      [][]*Object
 }
 
 // Provide objects to the Graph. The Object documentation describes
@@ -90,6 +96,13 @@ func (g *Graph) Provide(objects ...*Object) error {
 	for _, o := range objects {
 		o.reflectType = reflect.TypeOf(o.Value)
 		o.reflectValue = reflect.ValueOf(o.Value)
+
+		if o.Fields != nil {
+			return fmt.Errorf(
+				"fields were specified on object %s when it was provided",
+				o,
+			)
+		}
 
 		if o.Name == "" {
 			if !isStructPtr(o.reflectType) {
@@ -193,15 +206,6 @@ func (g *Graph) Populate() error {
 		}
 	}
 
-	// Finally we build the levels.
-	g.levels = make([][]*Object, g.maxLevel+1)
-	for _, o := range g.unnamed {
-		g.levels[o.level] = append(g.levels[o.level], o)
-	}
-	for _, o := range g.named {
-		g.levels[o.level] = append(g.levels[o.level], o)
-	}
-
 	return nil
 }
 
@@ -216,6 +220,7 @@ StructLoop:
 		field := o.reflectValue.Elem().Field(i)
 		fieldType := field.Type()
 		fieldTag := o.reflectType.Elem().Field(i).Tag
+		fieldName := o.reflectType.Elem().Field(i).Name
 		tag, err := parseTag(string(fieldTag))
 		if err != nil {
 			return fmt.Errorf(
@@ -276,7 +281,7 @@ StructLoop:
 					o,
 				)
 			}
-			g.updateLevel(o, existing)
+			o.addDep(fieldName, existing)
 			continue StructLoop
 		}
 
@@ -291,15 +296,9 @@ StructLoop:
 				)
 			}
 
-			newLevel := o.level + 1
-			if g.maxLevel < newLevel {
-				g.maxLevel = newLevel
-			}
-
 			err := g.Provide(&Object{
 				Value:    field.Addr().Interface(),
 				private:  true,
-				level:    newLevel,
 				embedded: true,
 			})
 			if err != nil {
@@ -360,23 +359,16 @@ StructLoop:
 							o,
 						)
 					}
-					g.updateLevel(o, existing)
+					o.addDep(fieldName, existing)
 					continue StructLoop
 				}
 			}
 		}
 
-		// Did not find an existing Object of the type we want or injectPrivate,
-		// we'll create one.
 		newValue := reflect.New(fieldType.Elem())
-		newLevel := o.level + 1
-		if g.maxLevel < newLevel {
-			g.maxLevel = newLevel
-		}
 		newObject := &Object{
 			Value:   newValue.Interface(),
 			private: tag == injectPrivate,
-			level:   newLevel,
 			created: true,
 		}
 
@@ -396,6 +388,7 @@ StructLoop:
 				o,
 			)
 		}
+		o.addDep(fieldName, newObject)
 	}
 	return nil
 }
@@ -410,6 +403,7 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 		field := o.reflectValue.Elem().Field(i)
 		fieldType := field.Type()
 		fieldTag := o.reflectType.Elem().Field(i).Tag
+		fieldName := o.reflectType.Elem().Field(i).Name
 		tag, err := parseTag(string(fieldTag))
 		if err != nil {
 			return fmt.Errorf(
@@ -480,7 +474,7 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 						o,
 					)
 				}
-				g.updateLevel(o, existing)
+				o.addDep(fieldName, existing)
 			}
 		}
 
@@ -496,21 +490,26 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 	return nil
 }
 
-func (g *Graph) updateLevel(use *Object, dep *Object) {
-	newLevel := use.level + 1
-	if newLevel <= dep.level {
-		return
+// Objects returns all known objects, named as well as unnamed. The returned
+// elements are not in a stable order.
+func (g *Graph) Objects() []*Object {
+	objects := make([]*Object, 0, len(g.unnamed)+len(g.named))
+	for _, o := range g.unnamed {
+		if !o.embedded {
+			objects = append(objects, o)
+		}
 	}
-	dep.level = newLevel
-	if g.maxLevel < newLevel {
-		g.maxLevel = newLevel
+	for _, o := range g.named {
+		if !o.embedded {
+			objects = append(objects, o)
+		}
 	}
-}
-
-// Levels returns a slice of levels of objects of the Object Graph.
-func (g *Graph) Levels() [][]*Object {
-	// TODO: copy?
-	return g.levels
+	// randomize to prevent callers from relying on ordering
+	for i := 0; i < len(objects); i++ {
+		j := rand.Intn(i + 1)
+		objects[i], objects[j] = objects[j], objects[i]
+	}
+	return objects
 }
 
 var (

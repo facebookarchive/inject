@@ -2,13 +2,21 @@ package inject_test
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
+	"github.com/facebookgo/ensure"
 	"github.com/facebookgo/inject"
 
 	injecttesta "github.com/facebookgo/inject/injecttesta"
 	injecttestb "github.com/facebookgo/inject/injecttestb"
 )
+
+func init() {
+	// we rely on math.Rand in Graph.Objects() and this gives it some randomness.
+	rand.Seed(time.Now().UnixNano())
+}
 
 type Answerable interface {
 	Answer() int
@@ -178,6 +186,14 @@ func TestTagWithOpenQuote(t *testing.T) {
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
+}
+
+func TestProvideWithFields(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{}
+	err := g.Provide(&inject.Object{Value: a, Fields: map[string]*inject.Object{}})
+	ensure.NotNil(t, err)
+	ensure.DeepEqual(t, err.Error(), "fields were specified on object *inject_test.TypeAnswerStruct when it was provided")
 }
 
 func TestProvideNonPointer(t *testing.T) {
@@ -738,19 +754,46 @@ func TestObjectString(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := [][]string{
-		{"*inject_test.TypeForObjectString"},
-		{"*inject_test.TypeNestedStruct", "*inject_test.TypeNestedStruct named foo"},
-		{"*inject_test.TypeAnswerStruct"},
+	var actual []string
+	for _, o := range g.Objects() {
+		actual = append(actual, fmt.Sprint(o))
 	}
 
-	for i, level := range g.Levels() {
-		for j, o := range level {
-			if actual := fmt.Sprint(o); actual != expected[i][j] {
-				t.Fatalf("expected %s but got %s", expected[i][j], actual)
-			}
-		}
+	ensure.SameElements(t, actual, []string{
+		"*inject_test.TypeForObjectString",
+		"*inject_test.TypeNestedStruct",
+		"*inject_test.TypeNestedStruct named foo",
+		"*inject_test.TypeAnswerStruct",
+	})
+}
+
+type TypeForGraphObjects struct {
+	A *TypeNestedStruct `inject:"foo"`
+	E struct {
+		B *TypeNestedStruct `inject:""`
+	} `inject:""`
+}
+
+func TestGraphObjects(t *testing.T) {
+	var g inject.Graph
+	err := g.Provide(
+		&inject.Object{Value: &TypeNestedStruct{}, Name: "foo"},
+		&inject.Object{Value: &TypeForGraphObjects{}},
+	)
+	ensure.Nil(t, err)
+	ensure.Nil(t, g.Populate())
+
+	var actual []string
+	for _, o := range g.Objects() {
+		actual = append(actual, fmt.Sprint(o))
 	}
+
+	ensure.SameElements(t, actual, []string{
+		"*inject_test.TypeAnswerStruct",
+		"*inject_test.TypeForGraphObjects",
+		"*inject_test.TypeNestedStruct named foo",
+		"*inject_test.TypeNestedStruct",
+	})
 }
 
 type logger struct {
