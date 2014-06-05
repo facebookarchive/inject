@@ -299,7 +299,7 @@ StructLoop:
 			err := g.Provide(&Object{
 				Value:    field.Addr().Interface(),
 				private:  true,
-				embedded: true,
+				embedded: o.reflectType.Elem().Field(i).Anonymous,
 			})
 			if err != nil {
 				return err

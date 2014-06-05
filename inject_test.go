@@ -647,6 +647,29 @@ func TestInjectWithStructValue(t *testing.T) {
 	}
 }
 
+type TypeWithNonpointerStructValue struct {
+	Inline TypeNestedStruct `inject:""`
+}
+
+func TestInjectWithNonpointerStructValue(t *testing.T) {
+	var v TypeWithNonpointerStructValue
+	var g inject.Graph
+	if err := g.Provide(&inject.Object{Value: &v}); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
+	}
+	if v.Inline.A == nil {
+		t.Fatal("v.Inline.A is nil")
+	}
+	n := len(g.Objects())
+	if n != 3 {
+		t.Fatalf("expected 3 object in graph, got %d", n)
+	}
+
+}
+
 func TestPrivateIsFollowed(t *testing.T) {
 	var v struct {
 		A *TypeNestedStruct `inject:"private"`
@@ -768,8 +791,9 @@ func TestObjectString(t *testing.T) {
 }
 
 type TypeForGraphObjects struct {
-	A *TypeNestedStruct `inject:"foo"`
-	E struct {
+	TypeNestedStruct `inject:""`
+	A                *TypeNestedStruct `inject:"foo"`
+	E                struct {
 		B *TypeNestedStruct `inject:""`
 	} `inject:""`
 }
@@ -793,6 +817,7 @@ func TestGraphObjects(t *testing.T) {
 		"*inject_test.TypeForGraphObjects",
 		"*inject_test.TypeNestedStruct named foo",
 		"*inject_test.TypeNestedStruct",
+		`*struct { B *inject_test.TypeNestedStruct "inject:\"\"" }`,
 	})
 }
 
