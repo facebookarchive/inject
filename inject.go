@@ -245,6 +245,15 @@ StructLoop:
 			)
 		}
 
+		// Inline tag on anything besides a struct is considered invalid.
+		if tag.Inline && fieldType.Kind() != reflect.Struct {
+			return fmt.Errorf(
+				"inline requested on non inlined field %s in type %s",
+				o.reflectType.Elem().Field(i).Name,
+				o.reflectType,
+			)
+		}
+
 		// Don't overwrite existing values.
 		if !isNilOrZero(field, fieldType) {
 			continue
@@ -286,11 +295,19 @@ StructLoop:
 		}
 
 		// Inline struct values indicate we want to traverse into it, but not
-		// inject itself.
+		// inject itself. We require an explicit "inline" tag for this to work.
 		if fieldType.Kind() == reflect.Struct {
-			if tag == injectPrivate {
+			if tag.Private {
 				return fmt.Errorf(
 					"cannot use private inject on inline struct on field %s in type %s",
+					o.reflectType.Elem().Field(i).Name,
+					o.reflectType,
+				)
+			}
+
+			if !tag.Inline {
+				return fmt.Errorf(
+					"inline struct on field %s in type %s requires an explicit \"inline\" tag",
 					o.reflectType.Elem().Field(i).Name,
 					o.reflectType,
 				)
@@ -314,7 +331,7 @@ StructLoop:
 
 		// Maps are created and required to be private.
 		if fieldType.Kind() == reflect.Map {
-			if tag != injectPrivate {
+			if !tag.Private {
 				return fmt.Errorf(
 					"inject on map field %s in type %s must be named or private",
 					o.reflectType.Elem().Field(i).Name,
@@ -344,7 +361,7 @@ StructLoop:
 
 		// Unless it's a private inject, we'll look for an existing instance of the
 		// same type.
-		if tag != injectPrivate {
+		if !tag.Private {
 			for _, existing := range g.unnamed {
 				if existing.private {
 					continue
@@ -368,7 +385,7 @@ StructLoop:
 		newValue := reflect.New(fieldType.Elem())
 		newObject := &Object{
 			Value:   newValue.Interface(),
-			private: tag == injectPrivate,
+			private: tag.Private,
 			created: true,
 		}
 
@@ -427,7 +444,7 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 
 		// Interface injection can't be private because we can't instantiate new
 		// instances of an interface.
-		if tag == injectPrivate {
+		if tag.Private {
 			return fmt.Errorf(
 				"found private inject tag on interface field %s in type %s",
 				o.reflectType.Elem().Field(i).Name,
@@ -515,10 +532,12 @@ func (g *Graph) Objects() []*Object {
 var (
 	injectOnly    = &tag{}
 	injectPrivate = &tag{Private: true}
+	injectInline  = &tag{Inline: true}
 )
 
 type tag struct {
 	Name    string
+	Inline  bool
 	Private bool
 }
 
@@ -532,6 +551,9 @@ func parseTag(t string) (*tag, error) {
 	}
 	if value == "" {
 		return injectOnly, nil
+	}
+	if value == "inline" {
+		return injectInline, nil
 	}
 	if value == "private" {
 		return injectPrivate, nil

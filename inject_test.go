@@ -593,6 +593,31 @@ func TestInjectInline(t *testing.T) {
 		Inline struct {
 			A *TypeAnswerStruct `inject:""`
 			B *TypeNestedStruct `inject:""`
+		} `inject:"inline"`
+	}
+
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.Inline.A == nil {
+		t.Fatal("v.Inline.A is nil")
+	}
+	if v.Inline.B == nil {
+		t.Fatal("v.Inline.B is nil")
+	}
+	if v.Inline.B.A == nil {
+		t.Fatal("v.Inline.B.A is nil")
+	}
+	if v.Inline.A != v.Inline.B.A {
+		t.Fatal("got different instances of A")
+	}
+}
+
+func TestInjectInlineOnPointer(t *testing.T) {
+	var v struct {
+		Inline *struct {
+			A *TypeAnswerStruct `inject:""`
+			B *TypeNestedStruct `inject:""`
 		} `inject:""`
 	}
 
@@ -610,6 +635,40 @@ func TestInjectInline(t *testing.T) {
 	}
 	if v.Inline.A != v.Inline.B.A {
 		t.Fatal("got different instances of A")
+	}
+}
+
+func TestInjectInvalidInline(t *testing.T) {
+	var v struct {
+		A *TypeAnswerStruct `inject:"inline"`
+	}
+
+	err := inject.Populate(&v)
+	if err == nil {
+		t.Fatal("was expecting an error")
+	}
+
+	const msg = `inline requested on non inlined field A in type *struct { A *inject_test.TypeAnswerStruct "inject:\"inline\"" }`
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	}
+}
+
+func TestInjectInlineMissing(t *testing.T) {
+	var v struct {
+		Inline struct {
+			B *TypeNestedStruct `inject:""`
+		} `inject:""`
+	}
+
+	err := inject.Populate(&v)
+	if err == nil {
+		t.Fatal("was expecting an error")
+	}
+
+	const msg = `inline struct on field Inline in type *struct { Inline struct { B *inject_test.TypeNestedStruct "inject:\"\"" } "inject:\"\"" } requires an explicit "inline" tag`
+	if err.Error() != msg {
+		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
 }
 
@@ -634,7 +693,7 @@ func TestInjectInlinePrivate(t *testing.T) {
 }
 
 type TypeWithStructValue struct {
-	Inline TypeNestedStruct `inject:""`
+	Inline TypeNestedStruct `inject:"inline"`
 }
 
 func TestInjectWithStructValue(t *testing.T) {
@@ -648,7 +707,7 @@ func TestInjectWithStructValue(t *testing.T) {
 }
 
 type TypeWithNonpointerStructValue struct {
-	Inline TypeNestedStruct `inject:""`
+	Inline TypeNestedStruct `inject:"inline"`
 }
 
 func TestInjectWithNonpointerStructValue(t *testing.T) {
@@ -791,11 +850,11 @@ func TestObjectString(t *testing.T) {
 }
 
 type TypeForGraphObjects struct {
-	TypeNestedStruct `inject:""`
+	TypeNestedStruct `inject:"inline"`
 	A                *TypeNestedStruct `inject:"foo"`
 	E                struct {
 		B *TypeNestedStruct `inject:""`
-	} `inject:""`
+	} `inject:"inline"`
 }
 
 func TestGraphObjects(t *testing.T) {
@@ -855,7 +914,7 @@ type TypeForLoggingEmbedded struct {
 }
 
 type TypeForLogging struct {
-	TypeForLoggingEmbedded `inject:""`
+	TypeForLoggingEmbedded `inject:"inline"`
 	TypeForLoggingCreated  *TypeForLoggingCreated `inject:""`
 }
 
