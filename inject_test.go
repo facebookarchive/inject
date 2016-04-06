@@ -3,6 +3,7 @@ package inject_test
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
@@ -512,9 +513,9 @@ func TestInjectTwoSatisfyInterface(t *testing.T) {
 		t.Fatal("did not find expected error")
 	}
 
-	const msg = "found two assignable values for field Answerable in type *inject_test.TypeInjectTwoSatisfyInterface. one type *inject_test.TypeAnswerStruct with value &{0 0} and another type *inject_test.TypeNestedStruct with value <*inject_test.TypeNestedStruct Value>"
-	if err.Error() != msg {
-		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	const msg = "found two assignable values for field Answerable in type *inject_test.TypeInjectTwoSatisfyInterface. one type *inject_test.TypeAnswerStruct with value &{0 0} and another type *inject_test.TypeNestedStruct with value"
+	if !strings.HasPrefix(err.Error(), msg) {
+		t.Fatalf("expected prefix:\n%s\nactual:\n%s", msg, err.Error())
 	}
 }
 
@@ -536,9 +537,9 @@ func TestInjectNamedTwoSatisfyInterface(t *testing.T) {
 		t.Fatal("was expecting error")
 	}
 
-	const msg = "found two assignable values for field Answerable in type *inject_test.TypeInjectNamedTwoSatisfyInterface. one type *inject_test.TypeAnswerStruct with value &{0 0} and another type *inject_test.TypeNestedStruct with value <*inject_test.TypeNestedStruct Value>"
-	if err.Error() != msg {
-		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
+	const msg = "found two assignable values for field Answerable in type *inject_test.TypeInjectNamedTwoSatisfyInterface. one type *inject_test.TypeAnswerStruct with value &{0 0} and another type *inject_test.TypeNestedStruct with value"
+	if !strings.HasPrefix(err.Error(), msg) {
+		t.Fatalf("expected prefix:\n%s\nactual:\n%s", msg, err.Error())
 	}
 }
 
