@@ -442,7 +442,7 @@ func TestInvalidNamedInstanceType(t *testing.T) {
 		t.Fatal("did not find expected error")
 	}
 
-	const msg = "object named foo of type *inject_test.TypeNestedStruct is not assignable to field A in type *inject_test.TypeWithInvalidNamedType"
+	const msg = "object named foo of type *inject_test.TypeNestedStruct is not assignable to field A (*inject_test.TypeAnswerStruct) in type *inject_test.TypeWithInvalidNamedType"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
