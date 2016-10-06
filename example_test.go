@@ -58,7 +58,7 @@ func Example() {
 
 	// We provide our graph two "seed" objects, one our empty
 	// HomePlanetRenderApp instance which we're hoping to get filled out,
-	// and second our DefaultTransport to satisfiy our HTTPTransport
+	// and second our DefaultTransport to satisfy our HTTPTransport
 	// dependency. We have to provide the DefaultTransport because the
 	// dependency is defined in terms of the http.RoundTripper interface,
 	// and since it is an interface the library cannot create an instance
