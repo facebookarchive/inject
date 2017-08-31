@@ -45,10 +45,18 @@ type Logger interface {
 func Populate(values ...interface{}) error {
 	var g Graph
 	for _, v := range values {
-		if err := g.Provide(&Object{Value: v}); err != nil {
+		var o *Object
+		var ok bool
+
+		if o, ok = v.(*Object); !ok {
+			o = &Object{Value: v}
+		}
+
+		if err := g.Provide(o); err != nil {
 			return err
 		}
 	}
+
 	return g.Populate()
 }
 
