@@ -3,6 +3,7 @@ package inject_test
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -111,6 +112,44 @@ func TestInjectSimple(t *testing.T) {
 	}
 	if v.A != v.B.A {
 		t.Fatal("got different instances of A")
+	}
+}
+
+func TestInjectOverride(t *testing.T) {
+	var v struct {
+		A *TypeAnswerStruct `inject:""`
+		B *TypeAnswerStruct `inject:"override"`
+	}
+	olda, oldb := &TypeAnswerStruct{}, &TypeAnswerStruct{}
+	v.A, v.B = olda, oldb
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.A != olda {
+		t.Fatal("original A was lost")
+	}
+	if v.B == oldb {
+		t.Fatal("original B was not overridden")
+	}
+}
+
+type TypeNestedInterfaceStruct struct {
+	A Answerable `inject:""`
+}
+
+func TestNonEmptyInterfaceTraversal(t *testing.T) {
+	olda := &TypeNestedStruct{}
+	v := TypeNestedInterfaceStruct{
+		A: olda,
+	}
+	if err := inject.Populate(&v); err != nil {
+		t.Fatal(err)
+	}
+	if v.A != olda {
+		t.Fatal("original A was lost")
+	}
+	if olda.A == nil {
+		t.Fatal("v.A.A is nil")
 	}
 }
 
@@ -238,7 +277,7 @@ func TestProvideTwoOfTheSame(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *github.com/facebookgo/inject_test.TypeAnswerStruct"
+	msg := fmt.Sprintf("provided two unnamed instances of type *%s.TypeAnswerStruct", reflect.TypeOf(a).PkgPath())
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -251,7 +290,7 @@ func TestProvideTwoOfTheSameWithPopulate(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *github.com/facebookgo/inject_test.TypeAnswerStruct"
+	msg := fmt.Sprintf("provided two unnamed instances of type *%s.TypeAnswerStruct", reflect.TypeOf(a).PkgPath())
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
