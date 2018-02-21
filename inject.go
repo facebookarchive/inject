@@ -206,6 +206,18 @@ func (g *Graph) Populate() error {
 		}
 	}
 
+	// Finally, optionally call the Init method for any domain specific initialization
+	for _, o := range g.Objects() {
+		method, exists := o.reflectType.MethodByName("Init")
+		if exists {
+			if g.Logger != nil {
+				g.Logger.Debugf("initializing %s", o)
+			}
+			method.Func.Call([]reflect.Value{o.reflectValue})
+		}
+
+	}
+
 	return nil
 }
 
