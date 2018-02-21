@@ -994,3 +994,29 @@ func TestForSameNameButDifferentPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+type TypeForIniting struct {
+	n int
+}
+
+func (t *TypeForIniting) Init() {
+	t.n = 78
+}
+
+func TestInitingStruct(t *testing.T) {
+	var g inject.Graph
+	var s TypeForIniting
+	err := g.Provide(
+		&inject.Object{Value: &s},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Populate(); err != nil {
+		t.Fatal(err)
+	}
+
+	if 78 != s.n {
+		t.Fatal("Did not initialize struct with Init() func")
+	}
+}

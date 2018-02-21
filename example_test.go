@@ -34,11 +34,18 @@ type NameAPI struct {
 	// hence must be explicitly provided to the graph.
 
 	HTTPTransport http.RoundTripper `inject:""`
+
+	// This initialized in the Init func
+	name string
+}
+
+func (n *NameAPI) Init() {
+	n.name = "Spock"
 }
 
 func (n *NameAPI) Name(id uint64) string {
 	// in the real world we would use f.HTTPTransport and fetch the name
-	return "Spock"
+	return n.name
 }
 
 // Our fake Planet API.
