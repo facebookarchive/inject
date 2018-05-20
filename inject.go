@@ -86,7 +86,7 @@ func (o *Object) addDep(field string, dep *Object) {
 type Graph struct {
 	Logger      Logger // Optional, will trigger debug logging.
 	unnamed     []*Object
-	unnamedType map[reflect.Type]bool
+	unnamedType map[reflect.Type]struct{}
 	named       map[string]*Object
 }
 
@@ -116,16 +116,16 @@ func (g *Graph) Provide(objects ...*Object) error {
 
 			if !o.private {
 				if g.unnamedType == nil {
-					g.unnamedType = make(map[reflect.Type]bool)
+					g.unnamedType = make(map[reflect.Type]struct{})
 				}
 
-				if g.unnamedType[o.reflectType] {
+				if _, ok := g.unnamedType[o.reflectType]; ok {
 					return fmt.Errorf(
 						"provided two unnamed instances of type *%s.%s",
 						o.reflectType.Elem().PkgPath(), o.reflectType.Elem().Name(),
 					)
 				}
-				g.unnamedType[o.reflectType] = true
+				g.unnamedType[o.reflectType] = struct{}{}
 			}
 			g.unnamed = append(g.unnamed, o)
 		} else {
