@@ -994,3 +994,125 @@ func TestForSameNameButDifferentPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestResolveWithInterfaceVariable(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{answer: 1, private: 2}
+	g.Provide(&inject.Object{Value: a})
+
+	var result Answerable
+
+	err := g.Resolve(&result)
+
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, result, a)
+}
+
+func TestResolveWithStructVariable(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{answer: 1, private: 2}
+	g.Provide(&inject.Object{Value: a})
+
+	var result TypeAnswerStruct
+
+	err := g.Resolve(&result)
+
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, &result, a)
+}
+
+func TestResolveNoProvidedInstanceOfSameType(t *testing.T) {
+	var g inject.Graph
+	l := &logger{}
+	g.Provide(&inject.Object{Value: l})
+
+	var result TypeAnswerStruct
+
+	err := g.Resolve(&result)
+
+	ensure.NotNil(t, err)
+	ensure.DeepEqual(t, err.Error(), "No provided object is assignable to dst")
+}
+
+func TestResolveWithNoPointer(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{answer: 1, private: 2}
+	g.Provide(&inject.Object{Value: a})
+
+	var result TypeAnswerStruct
+
+	err := g.Resolve(result)
+
+	ensure.NotNil(t, err)
+	ensure.DeepEqual(t, err.Error(), "dst its not a pointer")
+}
+
+func TestResolveByNameWithInterfaceVariable(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{answer: 1, private: 2}
+	const name = "name"
+	g.Provide(&inject.Object{Name: name, Value: a})
+
+	var result Answerable
+
+	err := g.ResolveByName(&result, name)
+
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, result, a)
+}
+
+func TestResolveByNameWithStructVariable(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{answer: 1, private: 2}
+	const name = "name"
+	g.Provide(&inject.Object{Name: name, Value: a})
+
+	var result TypeAnswerStruct
+
+	err := g.ResolveByName(&result, name)
+
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, &result, a)
+}
+
+func TestResolveByNameNoProvidedInstanceOfSameType(t *testing.T) {
+	var g inject.Graph
+	l := &logger{}
+	const name = "name"
+	g.Provide(&inject.Object{Name: name, Value: l})
+
+	var result TypeAnswerStruct
+
+	err := g.ResolveByName(&result, name)
+
+	ensure.NotNil(t, err)
+	ensure.DeepEqual(t, err.Error(), "No provided object is assignable to dst")
+}
+
+func TestResolveByNameNoProvidedInstanceWithSameName(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{answer: 1, private: 2}
+	const name = "name"
+	g.Provide(&inject.Object{Value: a})
+
+	var result TypeAnswerStruct
+
+	err := g.ResolveByName(&result, name)
+
+	ensure.NotNil(t, err)
+	ensure.DeepEqual(t, err.Error(), fmt.Sprintf("No provided object with the name: %s", name))
+}
+
+func TestResolveByNameWithNoPointer(t *testing.T) {
+	var g inject.Graph
+	a := &TypeAnswerStruct{answer: 1, private: 2}
+	const name = "name"
+	g.Provide(&inject.Object{Name: name, Value: a})
+
+	var result TypeAnswerStruct
+
+	err := g.ResolveByName(result, name)
+
+	ensure.NotNil(t, err)
+	ensure.DeepEqual(t, err.Error(), "dst its not a pointer")
+}

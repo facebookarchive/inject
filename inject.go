@@ -27,6 +27,7 @@ package inject
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -207,6 +208,40 @@ func (g *Graph) Populate() error {
 	}
 
 	return nil
+}
+
+// Resolve sets the value of dst to an assignable instance
+func (g *Graph) Resolve(dst interface{}) error {
+	return g.resolve(dst, g.unnamed...)
+}
+
+// ResolveByName sets the value of dst to an assignable instance with the provided name
+func (g *Graph) ResolveByName(dst interface{}, name string) error {
+	object, ok := g.named[name]
+
+	if !ok {
+		return fmt.Errorf("No provided object with the name: %s", name)
+	}
+
+	return g.resolve(dst, object)
+}
+
+func (g *Graph) resolve(dst interface{}, objects ...*Object) error {
+	dstPtrValue := reflect.ValueOf(dst)
+
+	if !isPointer(dstPtrValue) {
+		return errors.New("dst its not a pointer")
+	}
+
+	for _, object := range objects {
+		objectValue := reflect.ValueOf(object.Value)
+
+		if copyValueIfAssignable(objectValue, dstPtrValue) {
+			return nil
+		}
+	}
+
+	return errors.New("No provided object is assignable to dst")
 }
 
 func (g *Graph) populateExplicit(o *Object) error {
@@ -566,6 +601,10 @@ func isStructPtr(t reflect.Type) bool {
 	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
 }
 
+func isPointer(value reflect.Value) bool {
+	return value.Type().Kind() == reflect.Ptr
+}
+
 func isNilOrZero(v reflect.Value, t reflect.Type) bool {
 	switch v.Kind() {
 	default:
@@ -573,4 +612,26 @@ func isNilOrZero(v reflect.Value, t reflect.Type) bool {
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
 	}
+}
+
+func copyValueIfAssignable(src, destPtr reflect.Value) bool {
+	dstValue := destPtr.Elem()
+
+	srcType := src.Type()
+
+	switch dstValue.Kind() {
+	case reflect.Interface:
+		if srcType.AssignableTo(dstValue.Type()) {
+			dstValue.Set(src)
+			return true
+		}
+
+	case reflect.Struct:
+		if srcType.AssignableTo(destPtr.Type()) {
+			dstValue.Set(src.Elem())
+			return true
+		}
+	}
+
+	return false
 }
