@@ -114,6 +114,30 @@ func TestInjectSimple(t *testing.T) {
 	}
 }
 
+func TestInjectMixed(t *testing.T) {
+	var v struct {
+		A1 *TypeAnswerStruct `inject:"one"`
+		A2 *TypeAnswerStruct `inject:"another"`
+	}
+
+	if err := inject.Populate(
+		&v,
+		&inject.Object{Value: &TypeAnswerStruct{answer: 1}, Name: "one"},
+		&inject.Object{Value: &TypeAnswerStruct{answer: 2}, Name: "another"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if v.A1 == nil {
+		t.Fatal("v.A1 is nil")
+	}
+	if v.A2 == nil {
+		t.Fatal("v.A2 is nil")
+	}
+	if v.A1 == v.A2 {
+		t.Fatal("v.A1 equal to v.A2")
+	}
+}
+
 func TestDoesNotOverwrite(t *testing.T) {
 	a := &TypeAnswerStruct{}
 	var v struct {
@@ -852,8 +876,8 @@ func TestObjectString(t *testing.T) {
 
 type TypeForGraphObjects struct {
 	TypeNestedStruct `inject:"inline"`
-	A                *TypeNestedStruct `inject:"foo"`
-	E                struct {
+	A *TypeNestedStruct `inject:"foo"`
+	E struct {
 		B *TypeNestedStruct `inject:""`
 	} `inject:"inline"`
 }
@@ -916,7 +940,7 @@ type TypeForLoggingEmbedded struct {
 
 type TypeForLogging struct {
 	TypeForLoggingEmbedded `inject:"inline"`
-	TypeForLoggingCreated  *TypeForLoggingCreated `inject:""`
+	TypeForLoggingCreated *TypeForLoggingCreated `inject:""`
 }
 
 func TestInjectLogging(t *testing.T) {
