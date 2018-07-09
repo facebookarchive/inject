@@ -994,3 +994,13 @@ func TestForSameNameButDifferentPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestInjectNil(t *testing.T) {
+	var g inject.Graph
+	err := g.Provide(
+		&inject.Object{Value: nil},
+	)
+	if err == nil {
+		t.Fatal("expected error when injecting nil")
+	}
+}

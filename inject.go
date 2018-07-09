@@ -563,7 +563,7 @@ func parseTag(t string) (*tag, error) {
 }
 
 func isStructPtr(t reflect.Type) bool {
-	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
+	return t != nil && t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
 }
 
 func isNilOrZero(v reflect.Value, t reflect.Type) bool {
