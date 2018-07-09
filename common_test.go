@@ -1,4 +1,4 @@
-package inject_test
+package goject_test
 
 import "testing"
 

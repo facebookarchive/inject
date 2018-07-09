@@ -1,11 +1,11 @@
-package inject_test
+package goject_test
 
 import (
 	"fmt"
 	"net/http"
 	"os"
 
-	"github.com/facebookgo/inject"
+	"github.com/imaramos/goject"
 )
 
 // Our Awesome Application renders a message using two APIs in our fake
@@ -31,7 +31,7 @@ func (a *HomePlanetRenderApp) Render(id uint64) string {
 type NameAPI struct {
 	// Here and below in PlanetAPI we add the tag to an interface value.
 	// This value cannot automatically be created (by definition) and
-	// hence must be explicitly provided to the graph.
+	// hence must be explicitly provided to the Container.
 
 	HTTPTransport http.RoundTripper `inject:""`
 }
@@ -52,11 +52,11 @@ func (p *PlanetAPI) Planet(id uint64) string {
 }
 
 func Example() {
-	// Typically an application will have exactly one object graph, and
+	// Typically an application will have exactly one object Container, and
 	// you will create it and use it within a main function:
-	var g inject.Graph
+	var g goject.Container
 
-	// We provide our graph two "seed" objects, one our empty
+	// We provide our Container two "seed" objects, one our empty
 	// HomePlanetRenderApp instance which we're hoping to get filled out,
 	// and second our DefaultTransport to satisfy our HTTPTransport
 	// dependency. We have to provide the DefaultTransport because the
@@ -66,8 +66,8 @@ func Example() {
 	// the dependency since it implements the interface:
 	var a HomePlanetRenderApp
 	err := g.Provide(
-		&inject.Object{Value: &a},
-		&inject.Object{Value: http.DefaultTransport},
+		&goject.Object{Value: &a},
+		&goject.Object{Value: http.DefaultTransport},
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -83,9 +83,9 @@ func Example() {
 	}
 
 	// There is a shorthand API for the simple case which combines the
-	// three calls above is available as inject.Populate:
+	// three calls above is available as goject.Populate:
 	//
-	//   inject.Populate(&a, http.DefaultTransport)
+	//   goject.Populate(&a, http.DefaultTransport)
 	//
 	// The above API shows the underlying API which also allows the use of
 	// named instances for more complex scenarios.

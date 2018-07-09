@@ -1,4 +1,4 @@
-inject [![Build Status](https://secure.travis-ci.org/facebookgo/inject.png)](https://travis-ci.org/facebookgo/inject)
+Goject [![Build Status](https://secure.travis-ci.org/imaramos/goject.png)](https://travis-ci.org/imaramos/goject)
 ======
 
-Documentation: https://godoc.org/github.com/facebookgo/inject
+Documentation: https://godoc.org/github.com/imaramos/goject

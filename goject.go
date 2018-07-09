@@ -1,8 +1,8 @@
-// Package inject provides a reflect based injector. A large application built
+// package goject provides a reflect based injector. A large application built
 // with dependency injection in mind will typically involve the boring work of
-// setting up the object graph. This library attempts to take care of this
+// setting up the object Container. This library attempts to take care of this
 // boring work by creating and connecting the various objects. Its use involves
-// you seeding the object graph with some (possibly incomplete) objects, where
+// you seeding the object Container with some (possibly incomplete) objects, where
 // the underlying types have been tagged for injection. Given this, the
 // library will populate the objects creating new ones as necessary. It uses
 // singletons by default, supports optional private instances as well as named
@@ -23,7 +23,7 @@
 // of the associated type. The second triggers creation of a private instance
 // for the associated type. Finally the last form is asking for a named
 // dependency called "dev logger".
-package inject
+package goject
 
 import (
 	"bytes"
@@ -36,15 +36,15 @@ import (
 )
 
 // Logger allows for simple logging as inject traverses and populates the
-// object graph.
+// object Container.
 type Logger interface {
 	Debugf(format string, v ...interface{})
 }
 
-// Populate is a short-hand for populating a graph with the given incomplete
+// Populate is a short-hand for populating a Container with the given incomplete
 // object values.
 func Populate(values ...interface{}) error {
-	var g Graph
+	var g Container
 	for _, v := range values {
 		if err := g.Provide(&Object{Value: v}); err != nil {
 			return err
@@ -53,7 +53,7 @@ func Populate(values ...interface{}) error {
 	return g.Populate()
 }
 
-// An Object in the Graph.
+// An Object in the Container.
 type Object struct {
 	Value        interface{}
 	Name         string             // Optional
@@ -83,17 +83,17 @@ func (o *Object) addDep(field string, dep *Object) {
 	o.Fields[field] = dep
 }
 
-// The Graph of Objects.
-type Graph struct {
+// The Container of Objects.
+type Container struct {
 	Logger      Logger // Optional, will trigger debug logging.
 	unnamed     []*Object
 	unnamedType map[reflect.Type]bool
 	named       map[string]*Object
 }
 
-// Provide objects to the Graph. The Object documentation describes
+// Provide objects to the Container. The Object documentation describes
 // the impact of various fields.
-func (g *Graph) Provide(objects ...*Object) error {
+func (g *Container) Provide(objects ...*Object) error {
 	for _, o := range objects {
 		o.reflectType = reflect.TypeOf(o.Value)
 		o.reflectValue = reflect.ValueOf(o.Value)
@@ -154,7 +154,7 @@ func (g *Graph) Provide(objects ...*Object) error {
 }
 
 // Populate the incomplete Objects.
-func (g *Graph) Populate() error {
+func (g *Container) Populate() error {
 	for _, o := range g.named {
 		if o.Complete {
 			continue
@@ -166,7 +166,7 @@ func (g *Graph) Populate() error {
 	}
 
 	// We append and modify our slice as we go along, so we don't use a standard
-	// range loop, and do a single pass thru each object in our graph.
+	// range loop, and do a single pass thru each object in our Container.
 	i := 0
 	for {
 		if i == len(g.unnamed) {
@@ -211,12 +211,12 @@ func (g *Graph) Populate() error {
 }
 
 // Resolve sets the value of dst to an assignable instance
-func (g *Graph) Resolve(dst interface{}) error {
+func (g *Container) Resolve(dst interface{}) error {
 	return g.resolve(dst, g.unnamed...)
 }
 
 // ResolveByName sets the value of dst to an assignable instance with the provided name
-func (g *Graph) ResolveByName(dst interface{}, name string) error {
+func (g *Container) ResolveByName(dst interface{}, name string) error {
 	object, ok := g.named[name]
 
 	if !ok {
@@ -226,7 +226,7 @@ func (g *Graph) ResolveByName(dst interface{}, name string) error {
 	return g.resolve(dst, object)
 }
 
-func (g *Graph) resolve(dst interface{}, objects ...*Object) error {
+func (g *Container) resolve(dst interface{}, objects ...*Object) error {
 	dstPtrValue := reflect.ValueOf(dst)
 
 	if !isPointer(dstPtrValue) {
@@ -244,7 +244,7 @@ func (g *Graph) resolve(dst interface{}, objects ...*Object) error {
 	return errors.New("No provided object is assignable to dst")
 }
 
-func (g *Graph) populateExplicit(o *Object) error {
+func (g *Container) populateExplicit(o *Object) error {
 	// Ignore named value types.
 	if o.Name != "" && !isStructPtr(o.reflectType) {
 		return nil
@@ -446,7 +446,7 @@ StructLoop:
 	return nil
 }
 
-func (g *Graph) populateUnnamedInterface(o *Object) error {
+func (g *Container) populateUnnamedInterface(o *Object) error {
 	// Ignore named value types.
 	if o.Name != "" && !isStructPtr(o.reflectType) {
 		return nil
@@ -545,7 +545,7 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 
 // Objects returns all known objects, named as well as unnamed. The returned
 // elements are not in a stable order.
-func (g *Graph) Objects() []*Object {
+func (g *Container) Objects() []*Object {
 	objects := make([]*Object, 0, len(g.unnamed)+len(g.named))
 	for _, o := range g.unnamed {
 		if !o.embedded {
