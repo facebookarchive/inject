@@ -13,16 +13,18 @@
 //
 // The usage pattern for the library involves struct tags. It requires the tag
 // format used by the various standard libraries, like json, xml etc. It
-// involves tags in one of the three forms below:
+// involves tags in one of the four forms below:
 //
 //     `inject:""`
+//     `inject:"inline"`
 //     `inject:"private"`
 //     `inject:"dev logger"`
 //
 // The first no value syntax is for the common case of a singleton dependency
-// of the associated type. The second triggers creation of a private instance
-// for the associated type. Finally the last form is asking for a named
-// dependency called "dev logger".
+// of the associated type. The second is used for embedded structs that have
+// fields that need to be populated. The third triggers creation of a private
+// instance for the associated type. Finally the last form is asking for a
+// named dependency called "dev logger".
 package inject
 
 import (
