@@ -31,6 +31,7 @@ import (
 	"github.com/facebookgo/structtag"
 	"math/rand"
 	"reflect"
+	"strings"
 )
 
 // Logger allows for simple logging as inject traverses and populates the
@@ -66,6 +67,17 @@ type Object struct {
 
 func setterMethodName(fieldName string) string {
 	return fmt.Sprintf("Set%s", fieldName)
+
+}
+
+func setterMethodByField(val reflect.Value, fieldName string) reflect.Value {
+	method := val.MethodByName(setterMethodName(strings.Title(fieldName)))
+
+	if reflect.DeepEqual(method, reflect.Value{}) || method.IsNil() || !method.IsValid() {
+		method = val.MethodByName(setterMethodName(fieldName))
+	}
+
+	return method
 }
 
 func getterMethodName(fieldName string) string {
@@ -247,7 +259,8 @@ StructLoop:
 
 		// Cannot be used with unexported fields.
 		if !field.CanSet() {
-			methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+			//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+			methodSet := setterMethodByField(o.reflectValue, fieldName)
 			if !reflect.DeepEqual(methodSet, reflect.Value{}) {
 				setViaMethod = true
 			} else {
@@ -297,11 +310,13 @@ StructLoop:
 			}
 
 			if setViaMethod {
-				methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+				//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+				methodSet := setterMethodByField(o.reflectValue, fieldName)
 				if !reflect.DeepEqual(methodSet, reflect.Value{}) {
 					var args []reflect.Value
 					args = append(args, reflect.ValueOf(existing.Value))
-					o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+					setterMethodByField(o.reflectValue, fieldName).Call(args)
+					//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
 				} else {
 					return fmt.Errorf(
 						"inject requested on unexported field %s in type %s",
@@ -372,11 +387,13 @@ StructLoop:
 			}
 
 			if setViaMethod {
-				methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+				//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+				methodSet := setterMethodByField(o.reflectValue, fieldName)
 				if !reflect.DeepEqual(methodSet, reflect.Value{}) {
 					var args []reflect.Value
 					args = append(args, reflect.MakeMap(fieldType))
-					o.reflectValue.MethodByName("Set" + fieldName).Call(args)
+					//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+					setterMethodByField(o.reflectValue, fieldName).Call(args)
 				} else {
 					return fmt.Errorf(
 						"inject requested on unexported field %s in type %s",
@@ -445,11 +462,13 @@ StructLoop:
 
 		// Finally assign the newly created object to our field.
 		if setViaMethod {
-			methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+			//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+			methodSet := setterMethodByField(o.reflectValue, fieldName)
 			if !reflect.DeepEqual(methodSet, reflect.Value{}) {
 				var args []reflect.Value
 				args = append(args, newValue)
-				o.reflectValue.MethodByName("Set" + fieldName).Call(args)
+				//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+				setterMethodByField(o.reflectValue, fieldName).Call(args)
 			} else {
 				return fmt.Errorf(
 					"inject requested on unexported field %s in type %s",
@@ -554,13 +573,13 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 					field.Set(reflect.ValueOf(existing.Value))
 				} else {
 
-					methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
-
+					//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+					methodSet := setterMethodByField(o.reflectValue, fieldName)
 					if !reflect.DeepEqual(methodSet, reflect.Value{}) {
 						var args []reflect.Value
 						args = append(args, reflect.ValueOf(existing.Value))
-
-						o.reflectValue.MethodByName("Set" + fieldName).Call(args)
+						//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+						setterMethodByField(o.reflectValue, fieldName).Call(args)
 					} else {
 						return fmt.Errorf(
 							"inject requested on unexported field %s in type %s",
