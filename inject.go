@@ -28,10 +28,10 @@ package inject
 import (
 	"bytes"
 	"fmt"
+	"github.com/facebookgo/structtag"
 	"math/rand"
 	"reflect"
-
-	"github.com/facebookgo/structtag"
+	"strings"
 )
 
 // Logger allows for simple logging as inject traverses and populates the
@@ -63,6 +63,25 @@ type Object struct {
 	private      bool // If true, the Value will not be used and will only be populated
 	created      bool // If true, the Object was created by us
 	embedded     bool // If true, the Object is an embedded struct provided internally
+}
+
+func setterMethodName(fieldName string) string {
+	return fmt.Sprintf("Set%s", fieldName)
+
+}
+
+func setterMethodByField(val reflect.Value, fieldName string) reflect.Value {
+	method := val.MethodByName(setterMethodName(strings.Title(fieldName)))
+
+	if reflect.DeepEqual(method, reflect.Value{}) || method.IsNil() || !method.IsValid() {
+		method = val.MethodByName(setterMethodName(fieldName))
+	}
+
+	return method
+}
+
+func getterMethodName(fieldName string) string {
+	return fmt.Sprintf("Get%s", fieldName)
 }
 
 // String representation suitable for human consumption.
@@ -236,13 +255,21 @@ StructLoop:
 			continue
 		}
 
+		var setViaMethod bool
+
 		// Cannot be used with unexported fields.
 		if !field.CanSet() {
-			return fmt.Errorf(
-				"inject requested on unexported field %s in type %s",
-				o.reflectType.Elem().Field(i).Name,
-				o.reflectType,
-			)
+			//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+			methodSet := setterMethodByField(o.reflectValue, fieldName)
+			if !reflect.DeepEqual(methodSet, reflect.Value{}) {
+				setViaMethod = true
+			} else {
+				return fmt.Errorf(
+					"inject requested on unexported field %s in type %s",
+					o.reflectType.Elem().Field(i).Name,
+					o.reflectType,
+				)
+			}
 		}
 
 		// Inline tag on anything besides a struct is considered invalid.
@@ -282,7 +309,26 @@ StructLoop:
 				)
 			}
 
-			field.Set(reflect.ValueOf(existing.Value))
+			if setViaMethod {
+				//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+				methodSet := setterMethodByField(o.reflectValue, fieldName)
+				if !reflect.DeepEqual(methodSet, reflect.Value{}) {
+					var args []reflect.Value
+					args = append(args, reflect.ValueOf(existing.Value))
+					setterMethodByField(o.reflectValue, fieldName).Call(args)
+					//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+				} else {
+					return fmt.Errorf(
+						"inject requested on unexported field %s in type %s",
+						o.reflectType.Elem().Field(i).Name,
+						o.reflectType,
+					)
+				}
+			} else {
+				field.Set(reflect.ValueOf(existing.Value))
+
+			}
+
 			if g.Logger != nil {
 				g.Logger.Debugf(
 					"assigned %s to field %s in %s",
@@ -340,7 +386,25 @@ StructLoop:
 				)
 			}
 
-			field.Set(reflect.MakeMap(fieldType))
+			if setViaMethod {
+				//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+				methodSet := setterMethodByField(o.reflectValue, fieldName)
+				if !reflect.DeepEqual(methodSet, reflect.Value{}) {
+					var args []reflect.Value
+					args = append(args, reflect.MakeMap(fieldType))
+					//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+					setterMethodByField(o.reflectValue, fieldName).Call(args)
+				} else {
+					return fmt.Errorf(
+						"inject requested on unexported field %s in type %s",
+						o.reflectType.Elem().Field(i).Name,
+						o.reflectType,
+					)
+				}
+			} else {
+				field.Set(reflect.MakeMap(fieldType))
+			}
+
 			if g.Logger != nil {
 				g.Logger.Debugf(
 					"made map for field %s in %s",
@@ -397,7 +461,25 @@ StructLoop:
 		}
 
 		// Finally assign the newly created object to our field.
-		field.Set(newValue)
+		if setViaMethod {
+			//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+			methodSet := setterMethodByField(o.reflectValue, fieldName)
+			if !reflect.DeepEqual(methodSet, reflect.Value{}) {
+				var args []reflect.Value
+				args = append(args, newValue)
+				//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+				setterMethodByField(o.reflectValue, fieldName).Call(args)
+			} else {
+				return fmt.Errorf(
+					"inject requested on unexported field %s in type %s",
+					o.reflectType.Elem().Field(i).Name,
+					o.reflectType,
+				)
+			}
+		} else {
+			field.Set(newValue)
+		}
+
 		if g.Logger != nil {
 			g.Logger.Debugf(
 				"assigned newly created %s to field %s in %s",
@@ -416,6 +498,8 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 	if o.Name != "" && !isStructPtr(o.reflectType) {
 		return nil
 	}
+
+	//setterGetterField := findSetterGetterField(o)
 
 	for i := 0; i < o.reflectValue.Elem().NumField(); i++ {
 		field := o.reflectValue.Elem().Field(i)
@@ -483,7 +567,29 @@ func (g *Graph) populateUnnamedInterface(o *Object) error {
 					)
 				}
 				found = existing
-				field.Set(reflect.ValueOf(existing.Value))
+
+				// Cannot be used with unexported fields.
+				if field.CanSet() {
+					field.Set(reflect.ValueOf(existing.Value))
+				} else {
+
+					//methodSet := o.reflectValue.MethodByName(setterMethodName(fieldName))
+					methodSet := setterMethodByField(o.reflectValue, fieldName)
+					if !reflect.DeepEqual(methodSet, reflect.Value{}) {
+						var args []reflect.Value
+						args = append(args, reflect.ValueOf(existing.Value))
+						//o.reflectValue.MethodByName(setterMethodName(fieldName)).Call(args)
+						setterMethodByField(o.reflectValue, fieldName).Call(args)
+					} else {
+						return fmt.Errorf(
+							"inject requested on unexported field %s in type %s",
+							o.reflectType.Elem().Field(i).Name,
+							o.reflectType,
+						)
+					}
+
+				}
+
 				if g.Logger != nil {
 					g.Logger.Debugf(
 						"assigned existing %s to interface field %s in %s",
